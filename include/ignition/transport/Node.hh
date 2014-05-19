@@ -21,6 +21,7 @@
 #include <google/protobuf/message.h>
 #include <uuid/uuid.h>
 #include <algorithm>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -63,7 +64,8 @@ namespace ignition
       public: int Publish(const std::string &_topic,
                           const transport::ProtoMsg &_msg);
 
-      /// \brief Subscribe to a topic registering a callback.
+      /// \brief Subscribe to a topic registering a callback. In this version
+      /// the callback is a free function.
       /// \param[in] _topic Topic to be subscribed.
       /// \param[in] _cb Pointer to the callback function.
       /// \return 0 when success.
@@ -79,6 +81,44 @@ namespace ignition
 
         // Insert the callback into the handler.
         subscrHandlerPtr->SetCallback(_cb);
+
+        // Store the subscription handler. Each subscription handler is
+        // associated with a topic. When the receiving thread gets new data,
+        // it will recover the subscription handler associated to the topic and
+        // will invoke the callback.
+        this->dataPtr->topics.AddSubscriptionHandler(
+          _topic, this->nodeUuidStr, subscrHandlerPtr);
+
+        // Add the topic to the list of subscribed topics (if it was not before)
+        if (std::find(this->topicsSubscribed.begin(),
+          this->topicsSubscribed.end(), _topic) == this->topicsSubscribed.end())
+        {
+          this->topicsSubscribed.push_back(_topic);
+        }
+
+        // Discover the list of nodes that publish on the topic.
+        return this->dataPtr->SendSubscribeMsg(transport::SubType, _topic);
+      }
+
+      /// \brief Subscribe to a topic registering a callback. In this version
+      /// the callback is a member function.
+      /// \param[in] _topic Topic to be subscribed.
+      /// \param[in] _cb Pointer to the callback member function.
+      /// \param[in] _obj Instance.
+      /// \return 0 when success.
+      public: template<class C, class T> int Subscribe(
+          const std::string &_topic,
+          void(C::*_cb)(const std::string &, const T &), C* _obj)
+      {
+        std::lock_guard<std::mutex> lock(this->dataPtr->mutex);
+
+        // Create a new subscription handler.
+        std::shared_ptr<SubscriptionHandler<T>> subscrHandlerPtr(
+            new SubscriptionHandler<T>);
+
+        // Insert the callback into the handler by creating a free function.
+        subscrHandlerPtr->SetCallback(
+          std::bind(_cb, _obj, std::placeholders::_1, std::placeholders::_2));
 
         // Store the subscription handler. Each subscription handler is
         // associated with a topic. When the receiving thread gets new data,

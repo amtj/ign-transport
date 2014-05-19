@@ -37,7 +37,7 @@ static void s_sleep(int msecs)
 }
 
 //////////////////////////////////////////////////
-/// \brief Function is called everytime a topic update is received.
+/// \brief Function called each time a topic update is received.
 void cb(const std::string &_topic, const robot_msgs::StringMsg &_msg)
 {
   assert(_topic != "");
@@ -47,7 +47,7 @@ void cb(const std::string &_topic, const robot_msgs::StringMsg &_msg)
 }
 
 //////////////////////////////////////////////////
-/// \brief Function is called everytime a topic update is received.
+/// \brief Function called each time a topic update is received.
 void cb2(const std::string &_topic, const robot_msgs::StringMsg &_msg)
 {
   assert(_topic != "");
@@ -57,7 +57,44 @@ void cb2(const std::string &_topic, const robot_msgs::StringMsg &_msg)
 }
 
 //////////////////////////////////////////////////
-/// brief Subscribe to a topic.
+/// \brief A class for testing subscription passing a member function
+/// as a callback.
+class MyTestClass
+{
+  /// \brief Class constructor.
+  public: MyTestClass()
+    : callbackExecuted(false)
+  {
+    this->node.Subscribe(topic, &MyTestClass::Cb, this);
+  }
+
+  /// \brief Member function called each time a topic update is received.
+  public: void Cb(const std::string &_topic, const robot_msgs::StringMsg &_msg)
+  {
+    assert(_topic != "");
+
+    EXPECT_EQ(_msg.data(), data);
+    this->callbackExecuted = true;
+  };
+
+  /// \brief Advertise a topic and publish a message.
+  public: void SendSomeData()
+  {
+    robot_msgs::StringMsg msg;
+    msg.set_data(data);
+
+    this->node.Advertise(topic);
+    this->node.Publish(topic, msg);
+  }
+
+  /// \brief Member variable that flags when the callback is executed.
+  public: bool callbackExecuted;
+
+  /// \brief Transport node;
+  private: transport::Node node;
+};
+
+//////////////////////////////////////////////////
 void CreateSubscriber()
 {
   transport::Node node;
@@ -211,6 +248,16 @@ TEST(DiscZmqTest, PubSubOneThreadTwoSubs)
   EXPECT_FALSE(cb2Executed);
   cbExecuted = false;
   cb2Executed = false;
+}
+
+//////////////////////////////////////////////////
+TEST(NodeTest, ClassMemberCallback)
+{
+  MyTestClass client;
+  s_sleep(100);
+  client.SendSomeData();
+  s_sleep(100);
+  EXPECT_TRUE(client.callbackExecuted);
 }
 
 //////////////////////////////////////////////////
