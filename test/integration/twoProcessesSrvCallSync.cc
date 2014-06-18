@@ -32,8 +32,7 @@ std::string data = "bar";
 void srvEcho(const std::string &_topic, const robot_msgs::StringMsg &_req,
   robot_msgs::StringMsg &_rep, bool &_result)
 {
-  assert(_topic != "");
-
+  EXPECT_EQ(_topic, topic);
   EXPECT_EQ(_req.data(), data);
   _rep.set_data(_req.data());
   _result = true;
@@ -61,13 +60,13 @@ void runReplier()
 /// node receives the message.
 TEST(twoProcSrvCallSync, SrvTwoProcs)
 {
-  unsigned int timeout = 500;
   pid_t pid = fork();
 
   if (pid == 0)
     runReplier();
   else
   {
+    unsigned int timeout = 500;
     robot_msgs::StringMsg req;
     robot_msgs::StringMsg rep;
     bool result;

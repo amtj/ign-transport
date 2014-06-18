@@ -179,8 +179,6 @@ void NodeShared::RunReceptionTask()
 //////////////////////////////////////////////////
 int NodeShared::Publish(const std::string &_topic, const std::string &_data)
 {
-  assert(_topic != "");
-
   zmq::message_t message;
   message.rebuild(_topic.size() + 1);
   memcpy(message.data(), _topic.c_str(), _topic.size() + 1);
@@ -492,7 +490,9 @@ void NodeShared::SendPendingRemoteReqs(const std::string &_topic)
 
   // Send all the pending REQs.
   IReqHandler_M reqs;
-  this->requests.GetHandlers(_topic, reqs);
+  if (!this->requests.GetHandlers(_topic, reqs))
+    return;
+
   for (auto &node : reqs)
   {
     for (auto &req : node.second)

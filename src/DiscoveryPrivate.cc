@@ -109,9 +109,6 @@ void DiscoveryPrivate::Advertise(const MsgType &_advType,
   const std::string &_topic, const std::string &_addr, const std::string &_ctrl,
   const std::string &_nUuid, const Scope &_scope)
 {
-  // ToDo(caguero): Validate a topic (no whitespaces, not empty string, ...)
-  assert(_topic != "");
-
   std::lock_guard<std::mutex> lock(this->mutex);
 
   // Add the addressing information (local node).
@@ -128,8 +125,6 @@ void DiscoveryPrivate::Advertise(const MsgType &_advType,
 //////////////////////////////////////////////////
 void DiscoveryPrivate::Discover(const std::string &_topic, bool _isSrvCall)
 {
-  assert(_topic != "");
-
   std::lock_guard<std::mutex> lock(this->mutex);
 
   if (_isSrvCall)
@@ -457,6 +452,8 @@ int DiscoveryPrivate::SendMsg(uint8_t _type, const std::string &_topic,
   const std::string &_addr, const std::string &_ctrl, const std::string &_nUuid,
   const Scope &_scope, int _flags)
 {
+  zbeacon_t *aBeacon = zbeacon_new(this->ctx, this->DiscoveryPort);
+
   // Create the header.
   Header header(Version, this->pUuid, _topic, _type, _flags);
 
@@ -473,7 +470,7 @@ int DiscoveryPrivate::SendMsg(uint8_t _type, const std::string &_topic,
       advMsg.Pack(reinterpret_cast<char*>(&buffer[0]));
 
       // Broadcast the message.
-      zbeacon_publish(this->beacon,
+      zbeacon_publish(aBeacon,
         reinterpret_cast<unsigned char*>(&buffer[0]), advMsg.GetMsgLength());
 
       break;
@@ -487,7 +484,7 @@ int DiscoveryPrivate::SendMsg(uint8_t _type, const std::string &_topic,
       header.Pack(reinterpret_cast<char*>(&buffer[0]));
 
       // Broadcast the message.
-      zbeacon_publish(this->beacon,
+      zbeacon_publish(aBeacon,
         reinterpret_cast<unsigned char*>(&buffer[0]), header.GetHeaderLength());
 
       break;
@@ -496,7 +493,8 @@ int DiscoveryPrivate::SendMsg(uint8_t _type, const std::string &_topic,
       break;
   }
 
-  zbeacon_silence(this->beacon);
+  zbeacon_silence(aBeacon);
+  zbeacon_destroy(&aBeacon);
 
   if (this->verbose)
   {
@@ -555,8 +553,6 @@ void DiscoveryPrivate::PrintCurrentState()
 void DiscoveryPrivate::NewBeacon(const MsgType &_advType,
   const std::string &_topic, const std::string &_nUuid)
 {
-  assert(_topic != "");
-
   std::unique_ptr<Header> header;
 
   if (this->beacons.find(_topic) == this->beacons.end() ||
@@ -584,8 +580,8 @@ void DiscoveryPrivate::NewBeacon(const MsgType &_advType,
     advMsg.Pack(reinterpret_cast<char*>(&buffer[0]));
 
     // Setup the beacon.
-    zbeacon_publish(this->beacon,
-        reinterpret_cast<unsigned char*>(&buffer[0]), advMsg.GetMsgLength());
+    zbeacon_publish(
+      b, reinterpret_cast<unsigned char*>(&buffer[0]), advMsg.GetMsgLength());
   }
 }
 
@@ -593,8 +589,6 @@ void DiscoveryPrivate::NewBeacon(const MsgType &_advType,
 void DiscoveryPrivate::DelBeacon(const std::string &_topic,
                                  const std::string &_nUuid)
 {
-  assert(_topic != "");
-
   if (this->beacons.find(_topic) == this->beacons.end())
     return;
 
