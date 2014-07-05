@@ -64,39 +64,16 @@ Node::~Node()
   // Unadvertise all my topics.
   while (!this->dataPtr->topicsAdvertised.empty())
   {
-    auto topic = *this->dataPtr->topicsAdvertised.begin();
+    auto topic = this->dataPtr->topicsAdvertised.begin()->first;
     this->Unadvertise(topic);
   }
 
   // Unadvertise all my services.
   while (!this->dataPtr->srvsAdvertised.empty())
   {
-    auto topic = *this->dataPtr->srvsAdvertised.begin();
+    auto topic = this->dataPtr->srvsAdvertised.begin()->first;
     this->UnadvertiseSrv(topic);
   }
-}
-
-//////////////////////////////////////////////////
-bool Node::Advertise(const std::string &_topic, const Scope &_scope)
-{
-  std::string scTopic;
-  if (!TopicUtils::GetScopedName(this->dataPtr->ns, _topic, scTopic))
-  {
-    std::cerr << "Topic [" << _topic << "] is not valid." << std::endl;
-    return false;
-  }
-
-  std::lock_guard<std::recursive_mutex> lk(this->dataPtr->shared->mutex);
-
-  // Add the topic to the list of advertised topics (if it was not before)
-  this->dataPtr->topicsAdvertised.insert(scTopic);
-
-  // Notify the discovery service to register and advertise my topic.
-  this->dataPtr->shared->discovery->AdvertiseMsg(scTopic,
-    this->dataPtr->shared->myAddress, this->dataPtr->shared->myControlAddress,
-    this->dataPtr->nUuid, _scope);
-
-  return true;
 }
 
 //////////////////////////////////////////////////
@@ -107,7 +84,7 @@ std::vector<std::string> Node::GetAdvertisedTopics()
   std::vector<std::string> v;
 
   for (auto i : this->dataPtr->topicsAdvertised)
-    v.push_back(i);
+    v.push_back(i.first);
 
   return v;
 }
@@ -153,6 +130,16 @@ bool Node::Publish(const std::string &_topic, const ProtoMsg &_msg)
     return false;
   }
 
+  Advertise_t advertised = this->dataPtr->topicsAdvertised[scTopic];
+  auto descriptor = _msg.GetDescriptor();
+  if (advertised.name != descriptor->name())
+  {
+    std::cerr << "Publish error: You are trying to publish a message of type ["
+              << descriptor->name() << "] but you advertised the topic with "
+              << "type [" << advertised.name << "]" << std::endl;
+    return false;
+  }
+
   // Local subscribers.
   std::map<std::string, ISubscriptionHandler_M> handlers;
   if (this->dataPtr->shared->localSubscriptions.GetHandlers(scTopic, handlers))
@@ -179,7 +166,8 @@ bool Node::Publish(const std::string &_topic, const ProtoMsg &_msg)
   {
     std::string data;
     _msg.SerializeToString(&data);
-    this->dataPtr->shared->Publish(scTopic, data);
+    this->dataPtr->shared->Publish(
+      scTopic, advertised.name, advertised.hash, data);
   }
   // Debug output.
   // else
@@ -283,7 +271,7 @@ std::vector<std::string> Node::GetAdvertisedServices()
   std::vector<std::string> v;
 
   for (auto i : this->dataPtr->srvsAdvertised)
-    v.push_back(i);
+    v.push_back(i.first);
 
   return v;
 }

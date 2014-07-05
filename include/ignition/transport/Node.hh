@@ -18,6 +18,7 @@
 #ifndef __IGN_TRANSPORT_NODE_HH_INCLUDED__
 #define __IGN_TRANSPORT_NODE_HH_INCLUDED__
 
+#include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 #include <algorithm>
 #include <condition_variable>
@@ -60,8 +61,34 @@ namespace ignition
       /// \param[in] _topic Topic name to be advertised.
       /// \param[in] _scope Topic scope.
       /// \return true if the topic was advertised.
-      public: bool Advertise(const std::string &_topic,
-                             const Scope &_scope = Scope::All);
+      public: template<typename T> bool Advertise(const std::string &_topic,
+                                               const Scope &_scope = Scope::All)
+      {
+        std::string scTopic;
+        if (!TopicUtils::GetScopedName(this->dataPtr->ns, _topic, scTopic))
+        {
+          std::cerr << "Topic [" << _topic << "] is not valid." << std::endl;
+          return false;
+        }
+
+        std::lock_guard<std::recursive_mutex> lk(this->dataPtr->shared->mutex);
+
+        // Store the message type name and a hash of the message definition.
+        T msg;
+        std::hash<std::string> hashFn;
+        auto descriptor = msg.GetDescriptor();
+        Advertise_t adv =
+          {descriptor->name(), hashFn(descriptor->DebugString())};
+        this->dataPtr->topicsAdvertised[scTopic] = adv;
+
+        // Notify the discovery service to register and advertise my topic.
+        this->dataPtr->shared->discovery->AdvertiseMsg(scTopic,
+          this->dataPtr->shared->myAddress,
+          this->dataPtr->shared->myControlAddress,
+          this->dataPtr->nUuid, descriptor->name(), _scope);
+
+        return true;
+      }
 
       /// \brief Get the list of topics advertised by this node.
       /// \return A vector containing all the topics advertised by this node.
@@ -196,10 +223,10 @@ namespace ignition
       /// \param[in] _scope Topic scope.
       /// \return true when the topic has been successfully advertised or
       /// false otherwise.
-      public: template<typename T1, typename T2> bool Advertise(
+      public: template<typename Req, typename Rep> bool Advertise(
         const std::string &_topic,
-        void(*_cb)(const std::string &_topic, const T1 &_req,
-                   T2 &_rep, bool &_result),
+        void(*_cb)(const std::string &_topic, const Req &_req,
+                   Rep &_rep, bool &_result),
         const Scope &_scope = Scope::All)
       {
         std::string scTopic;
@@ -211,12 +238,20 @@ namespace ignition
 
         std::lock_guard<std::recursive_mutex> lk(this->dataPtr->shared->mutex);
 
-        // Add the topic to the list of advertised services.
-        this->dataPtr->srvsAdvertised.insert(scTopic);
+        // Add a new service to the list of advertised services in this node.
+        Req req;
+        Rep rep;
+        std::hash<std::string> hashFn;
+        auto reqDescriptor = req.GetDescriptor();
+        auto repDescriptor = rep.GetDescriptor();
+        AdvertiseSrv_t adv =
+          {reqDescriptor->name(), hashFn(reqDescriptor->DebugString()),
+           repDescriptor->name(), hashFn(repDescriptor->DebugString())};
+        this->dataPtr->srvsAdvertised[scTopic] = adv;
 
         // Create a new service reply handler.
-        std::shared_ptr<RepHandler<T1, T2>> repHandlerPtr(
-          new RepHandler<T1, T2>());
+        std::shared_ptr<RepHandler<Req, Rep>> repHandlerPtr(
+          new RepHandler<Req, Rep>());
 
         // Insert the callback into the handler.
         repHandlerPtr->SetCallback(_cb);
@@ -231,7 +266,7 @@ namespace ignition
         // Notify the discovery service to register and advertise my responser.
         this->dataPtr->shared->discovery->AdvertiseSrv(scTopic,
           this->dataPtr->shared->myReplierAddress, this->dataPtr->nUuid,
-          _scope);
+          reqDescriptor->name(), repDescriptor->name(), _scope);
 
         return true;
       }
@@ -249,10 +284,10 @@ namespace ignition
       /// \param[in] _scope Topic scope.
       /// \return true when the topic has been successfully advertised or
       /// false otherwise.
-      public: template<typename C, typename T1, typename T2> bool Advertise(
+      public: template<typename C, typename Req, typename Rep> bool Advertise(
         const std::string &_topic,
-        void(C::*_cb)(const std::string &_topic, const T1 &_req,
-                      T2 &_rep, bool &_result),
+        void(C::*_cb)(const std::string &_topic, const Req &_req,
+                      Rep &_rep, bool &_result),
         C *_obj,
         const Scope &_scope = Scope::All)
       {
@@ -265,12 +300,20 @@ namespace ignition
 
         std::lock_guard<std::recursive_mutex> lk(this->dataPtr->shared->mutex);
 
-        // Add the topic to the list of advertised services.
-        this->dataPtr->srvsAdvertised.insert(scTopic);
+        // Add a new service to the list of advertised services in this node.
+        Req req;
+        Rep rep;
+        std::hash<std::string> hashFn;
+        auto reqDescriptor = req.GetDescriptor();
+        auto repDescriptor = rep.GetDescriptor();
+        AdvertiseSrv_t adv =
+          {reqDescriptor->name(), hashFn(reqDescriptor->DebugString()),
+           repDescriptor->name(), hashFn(repDescriptor->DebugString())};
+        this->dataPtr->srvsAdvertised[scTopic] = adv;
 
         // Create a new service reply handler.
-        std::shared_ptr<RepHandler<T1, T2>> repHandlerPtr(
-          new RepHandler<T1, T2>(this->dataPtr->nUuid));
+        std::shared_ptr<RepHandler<Req, Rep>> repHandlerPtr(
+          new RepHandler<Req, Rep>(this->dataPtr->nUuid));
 
         // Insert the callback into the handler.
         repHandlerPtr->SetCallback(
@@ -287,7 +330,7 @@ namespace ignition
         // Notify the discovery service to register and advertise my responser.
         this->dataPtr->shared->discovery->AdvertiseSrv(scTopic,
           this->dataPtr->shared->myReplierAddress, this->dataPtr->nUuid,
-          _scope);
+          reqDescriptor->name(), repDescriptor->name(), _scope);
 
         return true;
       }

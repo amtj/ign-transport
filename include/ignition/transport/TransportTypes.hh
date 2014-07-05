@@ -57,6 +57,8 @@ namespace ignition
       Scope scope;
     };
 
+
+
     /// \def Addresses_M
     /// \brief The map stores all the publishers advertising this topic.
     /// The keys are the process uuid of the nodes. For each uuid key, the
