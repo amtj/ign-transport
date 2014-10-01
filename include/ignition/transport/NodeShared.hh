@@ -24,12 +24,14 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 #include "ignition/transport/Discovery.hh"
 #include "ignition/transport/HandlerStorage.hh"
 #include "ignition/transport/Helpers.hh"
 #include "ignition/transport/RepHandler.hh"
 #include "ignition/transport/ReqHandler.hh"
 #include "ignition/transport/TopicStorage.hh"
+#include "ignition/transport/Uuid.hh"
 
 namespace ignition
 {
@@ -173,6 +175,15 @@ namespace ignition
       /// \brief ZMQ socket for sending service call requests.
       public: std::unique_ptr<zmq::socket_t> requester;
 
+      /// \brief ZMQ socket for receiving service call responses.
+      public: std::unique_ptr<zmq::socket_t> responseReceiver;
+
+      /// \brief Response receiver socket identity.
+      public: Uuid responseReceiverId;
+
+      /// \brief Replier socket identity.
+      public: Uuid replierId;
+
       /// \brief ZMQ socket to receive service call requests.
       public: std::unique_ptr<zmq::socket_t> replier;
 
@@ -196,6 +207,10 @@ namespace ignition
 
       /// \brief Remote connections for pub/sub messages.
       private: TopicStorage connections;
+
+      /// \brief Remote connections for request/response messages. The key is
+      /// zeromq end point and the value its zeromq identity.
+      private: std::vector<std::string> srvConnections;
 
       /// \brief Remote subscribers.
       public: TopicStorage remoteSubscribers;

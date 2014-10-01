@@ -133,7 +133,7 @@ namespace ignition
       /// \brief Default heartbeat interval value (ms.).
       /// \sa GetHeartbeatInterval.
       /// \sa SetHeartbeatInterval.
-      public: static const unsigned int DefHeartbeatInterval = 1000;
+      public: static const unsigned int DefHeartbeatInterval = 500;
 
       /// \brief Default silence interval value (ms.).
       /// \sa GetMaxSilenceInterval.
@@ -143,7 +143,7 @@ namespace ignition
       /// \brief Default advertise interval value (ms.).
       /// \sa GetAdvertiseInterval.
       /// \sa SetAdvertiseInterval.
-      public: static const unsigned int DefAdvertiseInterval = 1000;
+      public: static const unsigned int DefAdvertiseInterval = 500;
 
       /// \brief Port used to broadcast the discovery messages.
       public: static const int DiscoveryPort = 11312;
