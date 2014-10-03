@@ -22,11 +22,12 @@
 #include <map>
 #include <memory>
 #include <mutex>
-#include <string>
 #include <thread>
+#include <string>
 #include <vector>
 #include "ignition/transport/Helpers.hh"
 #include "ignition/transport/Packet.hh"
+#include "ignition/transport/socket.hh"
 #include "ignition/transport/TopicStorage.hh"
 #include "ignition/transport/TransportTypes.hh"
 
@@ -41,7 +42,7 @@ namespace ignition
     {
       /// \def Timestamp
       /// \brief Used to evaluate the validity of a discovery entry.
-      typedef std::chrono::time_point<std::chrono::steady_clock> Timestamp;
+      typedef std::chrono::steady_clock::time_point Timestamp;
 
       /// \brief Constructor.
       /// \param[in] _pUuid This discovery instance will run inside a
