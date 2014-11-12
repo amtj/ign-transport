@@ -39,8 +39,17 @@ using namespace ignition;
 using namespace transport;
 
 //////////////////////////////////////////////////
-Node::Node(const std::string &_ns)
+Node::Node()
   : dataPtr(new NodePrivate())
+{
+  // Generate the node UUID.
+  Uuid uuid;
+  this->dataPtr->nUuid = uuid.ToString();
+}
+
+//////////////////////////////////////////////////
+Node::Node(const std::string &_partition, const std::string &_ns)
+  : Node()
 {
   if (TopicUtils::IsValidNamespace(_ns))
     this->dataPtr->ns = _ns;
@@ -50,9 +59,7 @@ Node::Node(const std::string &_ns)
     std::cerr << "Using default namespace." << std::endl;
   }
 
-  // Generate the node UUID.
-  Uuid uuid;
-  this->dataPtr->nUuid = uuid.ToString();
+  this->dataPtr->partition = _partition;
 }
 
 //////////////////////////////////////////////////
