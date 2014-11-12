@@ -474,7 +474,8 @@ TEST(PacketTest, BasicAdvertiseSrvAPI)
   pUuid = "Different-process-UUID-1";
 
   // Check AdvertiseSrv setters.
-  transport::Header anotherHeader(version + 1, pUuid, "", transport::AdvSrvType, 3);
+  transport::Header anotherHeader(version + 1, pUuid, "",
+    transport::AdvSrvType, 3);
   advSrv.SetHeader(anotherHeader);
   header = advSrv.GetHeader();
   EXPECT_EQ(header.GetVersion(), version + 1);
