@@ -205,7 +205,7 @@ DiscoveryPrivate::~DiscoveryPrivate()
 
   // Broadcast a BYE message to trigger the remote cancellation of
   // all our advertised topics.
-  this->SendMsg(ByeType, "", "", "", "", Scope::All);
+  this->SendMsg("", ByeType, "", "", "", "", Scope::All);
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   // Close sockets.
@@ -235,9 +235,9 @@ void DiscoveryPrivate::Advertise(const MsgType &_advType,
 
   // Broadcast periodically my topic information.
   if (_advType == MsgType::Msg)
-    this->SendMsg(AdvType, _topic, _addr, _ctrl, _nUuid, _scope);
+    this->SendMsg("", AdvType, _topic, _addr, _ctrl, _nUuid, _scope);
   else
-    this->SendMsg(AdvSrvType, _topic, _addr, _ctrl, _nUuid, _scope);
+    this->SendMsg("", AdvSrvType, _topic, _addr, _ctrl, _nUuid, _scope);
 }
 
 //////////////////////////////////////////////////
@@ -272,7 +272,7 @@ void DiscoveryPrivate::Unadvertise(const MsgType &_unadvType,
   if (inf.scope == Scope::Process)
     return;
 
-  this->SendMsg(msgType, _topic, inf.addr, inf.ctrl, _nUuid, inf.scope);
+  this->SendMsg("", msgType, _topic, inf.addr, inf.ctrl, _nUuid, inf.scope);
 }
 
 //////////////////////////////////////////////////
@@ -298,7 +298,7 @@ void DiscoveryPrivate::Discover(const std::string &_topic, bool _isSrv)
   }
 
   // Broadcast a discovery request for this service call.
-  this->SendMsg(msgType, _topic, "", "", "", Scope::All);
+  this->SendMsg("", msgType, _topic, "", "", "", Scope::All);
 
   // I already have information about this topic.
   if (storage->HasTopic(_topic))
@@ -378,7 +378,7 @@ void DiscoveryPrivate::RunHeartbeatTask()
     {
       std::lock_guard<std::mutex> lock(this->mutex);
 
-      this->SendMsg(HeartbeatType, "", "", "", "", Scope::All);
+      this->SendMsg("", HeartbeatType, "", "", "", "", Scope::All);
 
       // Re-advertise topics that are advertised inside this process.
       std::map<std::string, std::vector<Address_t>> nodes;
@@ -387,8 +387,8 @@ void DiscoveryPrivate::RunHeartbeatTask()
       {
         for (auto &node : topic.second)
         {
-          this->SendMsg(AdvType, topic.first, node.addr, node.ctrl, node.nUuid,
-            node.scope);
+          this->SendMsg("", AdvType, topic.first, node.addr, node.ctrl,
+            node.nUuid, node.scope);
         }
       }
 
@@ -398,7 +398,7 @@ void DiscoveryPrivate::RunHeartbeatTask()
       {
         for (auto &node : topic.second)
         {
-          this->SendMsg(AdvSrvType, topic.first, node.addr, node.ctrl,
+          this->SendMsg("", AdvSrvType, topic.first, node.addr, node.ctrl,
             node.nUuid, node.scope);
         }
       }
@@ -581,7 +581,7 @@ void DiscoveryPrivate::DispatchDiscoveryMsg(const std::string &_fromIp,
             }
 
             // Answer an ADVERTISE message.
-            this->SendMsg(msgType, recvTopic, nodeInfo.addr, nodeInfo.ctrl,
+            this->SendMsg("", msgType, recvTopic, nodeInfo.addr, nodeInfo.ctrl,
               nodeInfo.nUuid, nodeInfo.scope);
           }
         }
@@ -670,12 +670,12 @@ void DiscoveryPrivate::DispatchDiscoveryMsg(const std::string &_fromIp,
 }
 
 //////////////////////////////////////////////////
-void DiscoveryPrivate::SendMsg(uint8_t _type, const std::string &_topic,
-  const std::string &_addr, const std::string &_ctrl, const std::string &_nUuid,
-  const Scope &_scope, int _flags)
+void DiscoveryPrivate::SendMsg(const std::string &_partition, uint8_t _type,
+  const std::string &_topic, const std::string &_addr, const std::string &_ctrl,
+  const std::string &_nUuid, const Scope &_scope, int _flags)
 {
   // Create the header.
-  Header header(Version, this->pUuid, _type, _flags);
+  Header header(Version, this->pUuid, _partition, _type, _flags);
   auto msgLength = 0;
   std::vector<char> buffer;
 

@@ -112,6 +112,7 @@ namespace ignition
                                         char *_msg);
 
       /// \brief Broadcast a discovery message.
+      /// \param[in] _partition Partition name.
       /// \param[in] _type Message type.
       /// \param[in] _topic Topic name.
       /// \param[in] _addr 0MQ Address.
@@ -120,7 +121,8 @@ namespace ignition
       /// \param[in] _flags Optional flags. Currently, the flags are not used
       /// but they will in the future for specifying things like compression,
       /// or encryption.
-      public: void SendMsg(uint8_t _type,
+      public: void SendMsg(const std::string &_partition,
+                           uint8_t _type,
                            const std::string &_topic,
                            const std::string &_addr,
                            const std::string &_ctrl,

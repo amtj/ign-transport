@@ -30,7 +30,7 @@ TEST(PacketTest, BasicHeaderAPI)
 {
   std::string pUuid = "Process-UUID-1";
   uint8_t version   = 1;
-  transport::Header header(version, pUuid, transport::AdvType);
+  transport::Header header(version, pUuid, "", transport::AdvType);
 
   // Check Header getters.
   EXPECT_EQ(version, header.GetVersion());
@@ -39,6 +39,7 @@ TEST(PacketTest, BasicHeaderAPI)
   EXPECT_EQ(header.GetFlags(), 0);
   int headerLength = sizeof(header.GetVersion()) +
     sizeof(uint64_t) + header.GetPUuid().size() +
+    sizeof(uint64_t) + header.GetPartition().size() +
     sizeof(header.GetType()) + sizeof(header.GetFlags());
   EXPECT_EQ(header.GetHeaderLength(), headerLength);
 
@@ -52,6 +53,7 @@ TEST(PacketTest, BasicHeaderAPI)
   EXPECT_EQ(header.GetFlags(), 1);
   headerLength = sizeof(header.GetVersion()) +
     sizeof(uint64_t) + header.GetPUuid().size() +
+    sizeof(uint64_t) + header.GetPartition().size() +
     sizeof(header.GetType()) + sizeof(header.GetFlags());
   EXPECT_EQ(header.GetHeaderLength(), headerLength);
 
@@ -61,10 +63,11 @@ TEST(PacketTest, BasicHeaderAPI)
   std::string expectedOutput =
     "--------------------------------------\n"
     "Header:\n"
-    "\tVersion: 1\n"
-    "\tProcess UUID: Different-process-UUID-1\n"
-    "\tType: SUBSCRIBE\n"
-    "\tFlags: 1\n";
+    "\tVersion: [1]\n"
+    "\tProcess UUID: [Different-process-UUID-1]\n"
+    "\tPartition: []\n"
+    "\tType: [SUBSCRIBE]\n"
+    "\tFlags: [1]\n";
 
   EXPECT_EQ(output.str(), expectedOutput);
 }
@@ -82,7 +85,7 @@ TEST(PacketTest, HeaderIO)
   EXPECT_EQ(emptyHeader.Pack(&buffer[0]), 0u);
 
   // Pack a Header.
-  transport::Header header(version, pUuid, transport::AdvSrvType, 2);
+  transport::Header header(version, pUuid, "", transport::AdvSrvType, 2);
 
   buffer.resize(header.GetHeaderLength());
   int bytes = header.Pack(&buffer[0]);
@@ -113,7 +116,7 @@ TEST(PacketTest, BasicSubscriptionAPI)
   std::string pUuid = "Process-UUID-1";
   uint8_t version   = 1;
 
-  transport::Header otherHeader(version, pUuid, transport::SubType, 3);
+  transport::Header otherHeader(version, pUuid, "", transport::SubType, 3);
 
   std::string topic = "topic_test";
   transport::SubscriptionMsg subMsg(otherHeader, topic);
@@ -136,10 +139,11 @@ TEST(PacketTest, BasicSubscriptionAPI)
   std::string expectedOutput =
     "--------------------------------------\n"
     "Header:\n"
-    "\tVersion: 1\n"
-    "\tProcess UUID: Process-UUID-1\n"
-    "\tType: SUBSCRIBE\n"
-    "\tFlags: 3\n"
+    "\tVersion: [1]\n"
+    "\tProcess UUID: [Process-UUID-1]\n"
+    "\tPartition: []\n"
+    "\tType: [SUBSCRIBE]\n"
+    "\tFlags: [3]\n"
     "Body:\n"
     "\tTopic: [a_new_topic_test]\n";
 
@@ -159,7 +163,7 @@ TEST(PacketTest, SubscriptionIO)
   EXPECT_EQ(emptyMsg.Pack(&buffer[0]), 0u);
 
   // Pack a SubscriptionMsg with an empty topic.
-  transport::Header otherHeader(version, pUuid, transport::SubType, 3);
+  transport::Header otherHeader(version, pUuid, "", transport::SubType, 3);
   transport::SubscriptionMsg incompleteMsg(otherHeader, "");
   buffer.resize(incompleteMsg.GetMsgLength());
   EXPECT_EQ(0u, incompleteMsg.Pack(&buffer[0]));
@@ -202,7 +206,7 @@ TEST(PacketTest, BasicAdvertiseMsgAPI)
   std::string pUuid = "Process-UUID-1";
   uint8_t version   = 1;
 
-  transport::Header otherHeader(version, pUuid, transport::AdvType, 3);
+  transport::Header otherHeader(version, pUuid, "", transport::AdvType, 3);
 
   std::string topic = "topic_test";
   std::string addr = "tcp://10.0.0.1:6000";
@@ -240,7 +244,8 @@ TEST(PacketTest, BasicAdvertiseMsgAPI)
   pUuid = "Different-process-UUID-1";
 
   // Check AdvertiseMsg setters.
-  transport::Header anotherHeader(version + 1, pUuid, transport::AdvSrvType, 3);
+  transport::Header anotherHeader(version + 1, pUuid, "",
+    transport::AdvSrvType, 3);
   advMsg.SetHeader(anotherHeader);
   header = advMsg.GetHeader();
   EXPECT_EQ(header.GetVersion(), version + 1);
@@ -249,6 +254,7 @@ TEST(PacketTest, BasicAdvertiseMsgAPI)
   EXPECT_EQ(header.GetFlags(), 3);
   int headerLength = sizeof(header.GetVersion()) +
     sizeof(uint64_t) + header.GetPUuid().size() +
+    sizeof(uint64_t) + header.GetPartition().size() +
     sizeof(header.GetType()) + sizeof(header.GetFlags());
   EXPECT_EQ(header.GetHeaderLength(), headerLength);
 
@@ -277,10 +283,11 @@ TEST(PacketTest, BasicAdvertiseMsgAPI)
   std::string expectedOutput =
     "--------------------------------------\n"
     "Header:\n"
-    "\tVersion: 2\n"
-    "\tProcess UUID: Different-process-UUID-1\n"
-    "\tType: ADV_SRV\n"
-    "\tFlags: 3\n"
+    "\tVersion: [2]\n"
+    "\tProcess UUID: [Different-process-UUID-1]\n"
+    "\tPartition: []\n"
+    "\tType: [ADV_SRV]\n"
+    "\tFlags: [3]\n"
     "Body:\n"
     "\tTopic: [a_new_topic_test]\n"
     "\tAddress: inproc://local\n"
@@ -297,10 +304,11 @@ TEST(PacketTest, BasicAdvertiseMsgAPI)
   expectedOutput =
     "--------------------------------------\n"
     "Header:\n"
-    "\tVersion: 2\n"
-    "\tProcess UUID: Different-process-UUID-1\n"
-    "\tType: ADV_SRV\n"
-    "\tFlags: 3\n"
+    "\tVersion: [2]\n"
+    "\tProcess UUID: [Different-process-UUID-1]\n"
+    "\tPartition: []\n"
+    "\tType: [ADV_SRV]\n"
+    "\tFlags: [3]\n"
     "Body:\n"
     "\tTopic: [a_new_topic_test]\n"
     "\tAddress: inproc://local\n"
@@ -318,10 +326,11 @@ TEST(PacketTest, BasicAdvertiseMsgAPI)
   expectedOutput =
     "--------------------------------------\n"
     "Header:\n"
-    "\tVersion: 2\n"
-    "\tProcess UUID: Different-process-UUID-1\n"
-    "\tType: ADV_SRV\n"
-    "\tFlags: 3\n"
+    "\tVersion: [2]\n"
+    "\tProcess UUID: [Different-process-UUID-1]\n"
+    "\tPartition: []\n"
+    "\tType: [ADV_SRV]\n"
+    "\tFlags: [3]\n"
     "Body:\n"
     "\tTopic: [a_new_topic_test]\n"
     "\tAddress: inproc://local\n"
@@ -352,7 +361,7 @@ TEST(PacketTest, AdvertiseMsgIO)
   EXPECT_EQ(emptyMsg.Pack(&buffer[0]), 0u);
 
   // Try to pack an incomplete AdvMsg (empty topic).
-  transport::Header otherHeader(version, pUuid, transport::AdvType, 3);
+  transport::Header otherHeader(version, pUuid, "", transport::AdvType, 3);
   transport::AdvertiseMsg noTopicMsg(otherHeader, "", addr, ctrl, nodeUuid,
     scope, typeName);
   buffer.resize(noTopicMsg.GetMsgLength());
@@ -420,7 +429,7 @@ TEST(PacketTest, BasicAdvertiseSrvAPI)
   std::string pUuid = "Process-UUID-1";
   uint8_t version   = 1;
 
-  transport::Header otherHeader(version, pUuid, transport::AdvType, 3);
+  transport::Header otherHeader(version, pUuid, "", transport::AdvType, 3);
 
   std::string topic = "topic_test";
   std::string addr = "tcp://10.0.0.1:6000";
@@ -461,7 +470,7 @@ TEST(PacketTest, BasicAdvertiseSrvAPI)
   pUuid = "Different-process-UUID-1";
 
   // Check AdvertiseSrv setters.
-  transport::Header anotherHeader(version + 1, pUuid, transport::AdvSrvType, 3);
+  transport::Header anotherHeader(version + 1, pUuid, "", transport::AdvSrvType, 3);
   advSrv.SetHeader(anotherHeader);
   header = advSrv.GetHeader();
   EXPECT_EQ(header.GetVersion(), version + 1);
@@ -470,6 +479,7 @@ TEST(PacketTest, BasicAdvertiseSrvAPI)
   EXPECT_EQ(header.GetFlags(), 3);
   int headerLength = sizeof(header.GetVersion()) +
     sizeof(uint64_t) + header.GetPUuid().size() +
+    sizeof(uint64_t) + header.GetPartition().size() +
     sizeof(header.GetType()) + sizeof(header.GetFlags());
   EXPECT_EQ(header.GetHeaderLength(), headerLength);
 
@@ -501,10 +511,11 @@ TEST(PacketTest, BasicAdvertiseSrvAPI)
   std::string expectedOutput =
     "--------------------------------------\n"
     "Header:\n"
-    "\tVersion: 2\n"
-    "\tProcess UUID: Different-process-UUID-1\n"
-    "\tType: ADV_SRV\n"
-    "\tFlags: 3\n"
+    "\tVersion: [2]\n"
+    "\tProcess UUID: [Different-process-UUID-1]\n"
+    "\tPartition: []\n"
+    "\tType: [ADV_SRV]\n"
+    "\tFlags: [3]\n"
     "Body:\n"
     "\tTopic: [a_new_topic_test]\n"
     "\tAddress: inproc://local\n"
@@ -537,7 +548,7 @@ TEST(PacketTest, AdvertiseSrvIO)
   EXPECT_EQ(emptyMsg.Pack(&buffer[0]), 0u);
 
   // Try to pack an incomplete AdvertiseSrv (empty request type).
-  transport::Header otherHeader(version, pUuid, transport::AdvType, 3);
+  transport::Header otherHeader(version, pUuid, "", transport::AdvType, 3);
   transport::AdvertiseSrv noReqMsg(otherHeader, topic, addr, ctrl, nodeUuid,
     scope, "", repType);
   buffer.resize(noReqMsg.GetMsgLength());
