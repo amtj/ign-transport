@@ -98,6 +98,7 @@ TEST(PacketTest, HeaderIO)
   // Check that after Pack() and Unpack() the Header remains the same.
   EXPECT_EQ(header.GetVersion(), otherHeader.GetVersion());
   EXPECT_EQ(header.GetPUuid(), otherHeader.GetPUuid());
+  EXPECT_EQ(header.GetPartition(), otherHeader.GetPartition());
   EXPECT_EQ(header.GetType(), otherHeader.GetType());
   EXPECT_EQ(header.GetFlags(), otherHeader.GetFlags());
   EXPECT_EQ(header.GetHeaderLength(), otherHeader.GetHeaderLength());
@@ -221,6 +222,7 @@ TEST(PacketTest, BasicAdvertiseMsgAPI)
   transport::Header header = advMsg.GetHeader();
   EXPECT_EQ(header.GetVersion(), otherHeader.GetVersion());
   EXPECT_EQ(header.GetPUuid(), otherHeader.GetPUuid());
+  EXPECT_EQ(header.GetPartition(), otherHeader.GetPartition());
   EXPECT_EQ(header.GetType(), otherHeader.GetType());
   EXPECT_EQ(header.GetFlags(), otherHeader.GetFlags());
   EXPECT_EQ(header.GetHeaderLength(), otherHeader.GetHeaderLength());
@@ -250,6 +252,7 @@ TEST(PacketTest, BasicAdvertiseMsgAPI)
   header = advMsg.GetHeader();
   EXPECT_EQ(header.GetVersion(), version + 1);
   EXPECT_EQ(header.GetPUuid(), anotherHeader.GetPUuid());
+  EXPECT_EQ(header.GetPartition(), anotherHeader.GetPartition());
   EXPECT_EQ(header.GetType(), transport::AdvSrvType);
   EXPECT_EQ(header.GetFlags(), 3);
   int headerLength = sizeof(header.GetVersion()) +
@@ -445,6 +448,7 @@ TEST(PacketTest, BasicAdvertiseSrvAPI)
   transport::Header header = advSrv.GetHeader();
   EXPECT_EQ(header.GetVersion(), otherHeader.GetVersion());
   EXPECT_EQ(header.GetPUuid(), otherHeader.GetPUuid());
+  EXPECT_EQ(header.GetPartition(), otherHeader.GetPartition());
   EXPECT_EQ(header.GetType(), otherHeader.GetType());
   EXPECT_EQ(header.GetFlags(), otherHeader.GetFlags());
   EXPECT_EQ(header.GetHeaderLength(), otherHeader.GetHeaderLength());
@@ -475,6 +479,7 @@ TEST(PacketTest, BasicAdvertiseSrvAPI)
   header = advSrv.GetHeader();
   EXPECT_EQ(header.GetVersion(), version + 1);
   EXPECT_EQ(header.GetPUuid(), anotherHeader.GetPUuid());
+  EXPECT_EQ(header.GetPartition(), anotherHeader.GetPartition());
   EXPECT_EQ(header.GetType(), transport::AdvSrvType);
   EXPECT_EQ(header.GetFlags(), 3);
   int headerLength = sizeof(header.GetVersion()) +
