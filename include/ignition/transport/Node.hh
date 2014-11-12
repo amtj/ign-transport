@@ -55,9 +55,14 @@ namespace ignition
     class IGNITION_VISIBLE Node
     {
       /// \brief Constructor.
-      /// \param[in] _ns Default namespace used by this topic. This might
+      public: Node();
+
+      /// \brief Constructor.
+      /// \param[in] _partition Partition used by this node.
+      /// \param[in] _ns Default namespace used by this node. This might
       /// be a prefix that can be added to each advertise message if required.
-      public: Node(const std::string &_ns = "");
+      public: Node(const std::string &_partition,
+                   const std::string &_ns);
 
       /// \brief Destructor.
       public: virtual ~Node();
