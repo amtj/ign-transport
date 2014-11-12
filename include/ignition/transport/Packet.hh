@@ -63,10 +63,14 @@ namespace ignition
       /// \brief Constructor.
       /// \param[in] _version Version of the discovery protocol.
       /// \param[in] _pUuid Every process has a unique UUID.
+      /// \param[in] _partition This is a way to control which nodes receive
+      /// discovery messages. Only nodes with the same partition name or an
+      /// empty one will share discovery messages.
       /// \param[in] _type Message type (ADVERTISE, SUBSCRIPTION, ...)
       /// \param[in] _flags Optional flags included in the header.
       public: Header(const uint16_t _version,
                      const std::string &_pUuid,
+                     const std::string &_partition,
                      const uint8_t _type,
                      const uint16_t _flags = 0);
 
@@ -80,6 +84,10 @@ namespace ignition
       /// \brief Get the process uuid.
       /// \return A unique global identifier for every process.
       public: std::string GetPUuid() const;
+
+      /// \brief Get the partition name.
+      /// \return The partition name.
+      public: std::string GetPartition() const;
 
       /// \brief Get the message type.
       /// \return Message type (ADVERTISE, SUBSCRIPTION, ...)
@@ -96,6 +104,10 @@ namespace ignition
       /// \brief Set the process uuid.
       /// \param[in] _pUuid A unique global identifier for every process.
       public: void SetPUuid(const std::string &_pUuid);
+
+      /// \brief Set the partition name.
+      /// \param[in] _pUuid A name used to filter discovery messages.
+      public: void SetPartition(const std::string &_partition);
 
       /// \brief Set the message type.
       /// \param[in] _type Message type (ADVERTISE, SUBSCRIPTION, ...).
@@ -128,10 +140,11 @@ namespace ignition
       {
         _out << "--------------------------------------\n"
              << "Header:" << std::endl
-             << "\tVersion: " << _header.GetVersion() << "\n"
-             << "\tProcess UUID: " << _header.GetPUuid() << "\n"
-             << "\tType: " << MsgTypesStr.at(_header.GetType()) << "\n"
-             << "\tFlags: " << _header.GetFlags() << "\n";
+             << "\tVersion: [" << _header.GetVersion() << "]\n"
+             << "\tProcess UUID: [" << _header.GetPUuid() << "]\n"
+             << "\tPartition: [" << _header.GetPartition() << "]\n"
+             << "\tType: [" << MsgTypesStr.at(_header.GetType()) << "]\n"
+             << "\tFlags: [" << _header.GetFlags() << "]\n";
         return _out;
       }
 
@@ -140,6 +153,11 @@ namespace ignition
 
       /// \brief Global identifier. Every process has a unique guid.
       private: std::string pUuid = "";
+
+      /// \brief Partition name. This is a way to control which nodes receive
+      /// discovery messages. Only nodes with the same partition name or an
+      /// empty one will share discovery messages.
+      private: std::string partition = "";
 
       /// \brief Message type (ADVERTISE, SUBSCRIPTION, ...).
       private: uint8_t type = Uninitialized;
