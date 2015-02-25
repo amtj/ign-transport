@@ -130,6 +130,12 @@ Discovery::Discovery(const std::string &_pUuid, bool _verbose)
 
     this->dataPtr->sockets.push_back(sock);
 
+    if (this->dataPtr->verbose)
+    {
+      std::cout << "Using [" << interface << "] network interface for discovery"
+                << std::endl;
+    }
+
     // Join the multicast group. We have to do it for each network interface but
     // we can do it on the same socket. We will use the socket at position 0 for
     // receiving multicast information.
@@ -177,12 +183,15 @@ Discovery::Discovery(const std::string &_pUuid, bool _verbose)
   localAddr.sin_addr.s_addr = htonl(INADDR_ANY);
   localAddr.sin_port = htons(this->dataPtr->DiscoveryPort);
 
-  if (bind(this->dataPtr->sockets.at(0), reinterpret_cast<sockaddr *>(&localAddr),
-        sizeof(sockaddr_in)) < 0)
+  if (bind(this->dataPtr->sockets.at(0),
+        reinterpret_cast<sockaddr *>(&localAddr), sizeof(sockaddr_in)) < 0)
   {
     std::cerr << "Binding to a local port failed." << std::endl;
     return;
   }
+
+  if (this->dataPtr->verbose)
+    std::cout << "Bind at [" << interface << "] for discovery" << std::endl;
 
   // Set 'mcastAddr' to the multicast discovery group.
   memset(&this->dataPtr->mcastAddr, 0, sizeof(this->dataPtr->mcastAddr));
