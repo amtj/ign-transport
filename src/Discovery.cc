@@ -130,11 +130,11 @@ Discovery::Discovery(const std::string &_pUuid, bool _verbose)
 
     this->dataPtr->sockets.push_back(sock);
 
-    if (this->dataPtr->verbose)
-    {
+    //if (this->dataPtr->verbose)
+    //{
       std::cout << "Using [" << interface << "] network interface for discovery"
                 << std::endl;
-    }
+    //}
 
     // Join the multicast group. We have to do it for each network interface but
     // we can do it on the same socket. We will use the socket at position 0 for
@@ -190,11 +190,11 @@ Discovery::Discovery(const std::string &_pUuid, bool _verbose)
     return;
   }
 
-  if (this->dataPtr->verbose)
-  {
+  //if (this->dataPtr->verbose)
+  //{
     std::cout << "Bind at [" << this->dataPtr->hostInterfaces.at(0)
               << "] for discovery" << std::endl;
-  }
+  //}
 
   // Set 'mcastAddr' to the multicast discovery group.
   memset(&this->dataPtr->mcastAddr, 0, sizeof(this->dataPtr->mcastAddr));
