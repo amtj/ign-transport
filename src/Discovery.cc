@@ -190,12 +190,6 @@ Discovery::Discovery(const std::string &_pUuid, bool _verbose)
     return;
   }
 
-  //if (this->dataPtr->verbose)
-  //{
-    std::cout << "Bind at [" << this->dataPtr->hostInterfaces.at(0)
-              << "] for discovery" << std::endl;
-  //}
-
   // Set 'mcastAddr' to the multicast discovery group.
   memset(&this->dataPtr->mcastAddr, 0, sizeof(this->dataPtr->mcastAddr));
   this->dataPtr->mcastAddr.sin_family = AF_INET;
