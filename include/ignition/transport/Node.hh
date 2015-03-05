@@ -74,8 +74,41 @@ namespace ignition
       /// \param[in] _topic Topic name to be advertised.
       /// \param[in] _scope Topic scope.
       /// \return true if the topic was succesfully advertised.
-      public: bool Advertise(const std::string &_topic,
-                             const Scope_t &_scope = Scope_t::All);
+      public: template<typename T> bool Advertise(const std::string &_topic,
+                                           const Scope_t &_scope = Scope_t::All)
+      {
+        std::string fullyQualifiedTopic;
+        if (!TopicUtils::GetFullyQualifiedName(this->Partition(),
+          this->NameSpace(), _topic, fullyQualifiedTopic))
+        {
+          std::cerr << "Topic [" << _topic << "] is not valid." << std::endl;
+          return false;
+        }
+
+        std::lock_guard<std::recursive_mutex> discLk(
+          this->Shared()->discovery->Mutex());
+        std::lock_guard<std::recursive_mutex> lk(this->Shared()->mutex);
+
+        // Add the topic to the list of advertised topics (if it was not before)
+        this->TopicsAdvertised().insert(fullyQualifiedTopic);
+
+        // Notify the discovery service to register and advertise my topic.
+        MessagePublisher publisher(fullyQualifiedTopic,
+          this->Shared()->myAddress,
+          this->Shared()->myControlAddress,
+          this->Shared()->pUuid, this->NodeUuid(), _scope,
+          T().GetTypeName());
+
+        if (!this->Shared()->discovery->AdvertiseMsg(publisher))
+        {
+          std::cerr << "Node::Advertise(): Error advertising a topic. "
+                    << "Did you forget to start the discovery service?"
+                    << std::endl;
+          return false;
+        }
+
+        return true;
+      }
 
       /// \brief Get the list of topics advertised by this node.
       /// \return A vector containing all the topics advertised by this node.
@@ -265,8 +298,8 @@ namespace ignition
         ServicePublisher publisher(fullyQualifiedTopic,
           this->Shared()->myReplierAddress,
           this->Shared()->replierId.ToString(),
-          this->Shared()->pUuid, this->NodeUuid(), _scope, "unused",
-          "unused");
+          this->Shared()->pUuid, this->NodeUuid(), _scope,
+          T1().GetTypeName(), T2().GetTypeName());
 
         if (!this->Shared()->discovery->AdvertiseSrv(publisher))
         {
@@ -334,8 +367,8 @@ namespace ignition
         ServicePublisher publisher(fullyQualifiedTopic,
           this->Shared()->myReplierAddress,
           this->Shared()->replierId.ToString(),
-          this->Shared()->pUuid, this->NodeUuid(), _scope, "unused",
-          "unused");
+          this->Shared()->pUuid, this->NodeUuid(), _scope,
+          T1().GetTypeName(), T2().GetTypeName());
 
         if (!this->Shared()->discovery->AdvertiseSrv(publisher))
         {
@@ -382,8 +415,8 @@ namespace ignition
 
         // If the responser is within my process.
         IRepHandlerPtr repHandler;
-        if (this->Shared()->repliers.GetHandler(fullyQualifiedTopic,
-          repHandler))
+        if (this->Shared()->repliers.GetFirstHandler(fullyQualifiedTopic,
+          T1().GetTypeName(), T2().GetTypeName(), repHandler))
         {
           // There is a responser in my process, let's use it.
           T2 rep;
@@ -418,7 +451,8 @@ namespace ignition
         if (this->Shared()->discovery->SrvPublishers(
           fullyQualifiedTopic, addresses))
         {
-          this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic);
+          this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic,
+            T1().GetTypeName(), T2().GetTypeName());
         }
         else
         {
@@ -468,8 +502,8 @@ namespace ignition
 
         // If the responser is within my process.
         IRepHandlerPtr repHandler;
-        if (this->Shared()->repliers.GetHandler(fullyQualifiedTopic,
-          repHandler))
+        if (this->Shared()->repliers.GetFirstHandler(fullyQualifiedTopic,
+          T1().GetTypeName(), T2().GetTypeName(), repHandler))
         {
           // There is a responser in my process, let's use it.
           T2 rep;
@@ -506,7 +540,8 @@ namespace ignition
         if (this->Shared()->discovery->SrvPublishers(
           fullyQualifiedTopic, addresses))
         {
-          this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic);
+          this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic,
+            T1().GetTypeName(), T2().GetTypeName());
         }
         else
         {
@@ -552,8 +587,8 @@ namespace ignition
 
         // If the responser is within my process.
         IRepHandlerPtr repHandler;
-        if (this->Shared()->repliers.GetHandler(fullyQualifiedTopic,
-          repHandler))
+        if (this->Shared()->repliers.GetFirstHandler(fullyQualifiedTopic,
+          T1().GetTypeName(), T2().GetTypeName(), repHandler))
         {
           // There is a responser in my process, let's use it.
           repHandler->RunLocalCallback(fullyQualifiedTopic, _req, _rep,
@@ -578,7 +613,8 @@ namespace ignition
         if (this->Shared()->discovery->SrvPublishers(
           fullyQualifiedTopic, addresses))
         {
-          this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic);
+          this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic,
+            T1().GetTypeName(), T2().GetTypeName());
         }
         else
         {
@@ -639,6 +675,10 @@ namespace ignition
       /// \brief Get the UUID of this node.
       /// \return The node UUID.
       private: const std::string& NodeUuid() const;
+
+      /// \brief Get the set of topics advertised by this node.
+      /// \return The set of advertised topics.
+      private: std::unordered_set<std::string>& TopicsAdvertised() const;
 
       /// \brief Get the set of topics subscribed by this node.
       /// \return The set of subscribed topics.
