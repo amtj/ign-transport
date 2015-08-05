@@ -8,6 +8,7 @@ set (sources
   NodeShared.cc
   Packet.cc
   Publisher.cc
+  ServiceResult.cc
   TopicUtils.cc
   Uuid.cc
 )
@@ -18,6 +19,7 @@ set (gtest_sources
   Node_TEST.cc
   Packet_TEST.cc
   Publisher_TEST.cc
+  ServiceResult_TEST.cc
   TopicStorage_TEST.cc
   TopicUtils_TEST.cc
   Uuid_TEST.cc

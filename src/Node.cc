@@ -130,39 +130,6 @@ Node::~Node()
 }
 
 //////////////////////////////////////////////////
-bool Node::Advertise(const std::string &_topic, const Scope_t &_scope)
-{
-  std::string fullyQualifiedTopic;
-  if (!TopicUtils::GetFullyQualifiedName(this->dataPtr->partition,
-    this->dataPtr->ns, _topic, fullyQualifiedTopic))
-  {
-    std::cerr << "Topic [" << _topic << "] is not valid." << std::endl;
-    return false;
-  }
-
-  std::lock_guard<std::recursive_mutex> discLk(
-          this->dataPtr->shared->discovery->Mutex());
-  std::lock_guard<std::recursive_mutex> lk(this->dataPtr->shared->mutex);
-
-  // Add the topic to the list of advertised topics (if it was not before).
-  this->dataPtr->topicsAdvertised.insert(fullyQualifiedTopic);
-
-  // Notify the discovery service to register and advertise my topic.
-  MessagePublisher publisher(fullyQualifiedTopic,
-    this->dataPtr->shared->myAddress, this->dataPtr->shared->myControlAddress,
-    this->dataPtr->shared->pUuid, this->dataPtr->nUuid, _scope, "unused");
-
-  if (!this->dataPtr->shared->discovery->AdvertiseMsg(publisher))
-  {
-    std::cerr << "Node::Advertise(): Error advertising a topic. "
-              << "Did you forget to start the discovery service?" << std::endl;
-    return false;
-  }
-
-  return true;
-}
-
-//////////////////////////////////////////////////
 std::vector<std::string> Node::AdvertisedTopics() const
 {
   std::lock_guard<std::recursive_mutex> lk(this->dataPtr->shared->mutex);
@@ -227,6 +194,26 @@ bool Node::Publish(const std::string &_topic, const ProtoMsg &_msg)
     return false;
   }
 
+  // Check that the msg type matches the type previously advertised '_topic'.
+  MessagePublisher pub;
+  auto &info = this->dataPtr->shared->discovery->GetDiscoveryMsgInfo();
+  std::string procUuid = this->dataPtr->shared->pUuid;
+  std::string nodeUuid = this->dataPtr->nUuid;
+  if (!info.GetPublisher(fullyQualifiedTopic, procUuid, nodeUuid, pub))
+  {
+    std::cerr << "Node::Publish() I cannot find the msgType registered for "
+              << "topic [" << _topic << "]" << std::endl;
+    return false;
+  }
+
+  if (pub.MsgTypeName() != _msg.GetTypeName())
+  {
+    std::cerr << "Node::Publish() Type mismatch." << std::endl
+              << "\t* Type advertised: " << pub.MsgTypeName() << std::endl
+              << "\t* Type published: " << _msg.GetTypeName() << std::endl;
+    return false;
+  }
+
   // Local subscribers.
   std::map<std::string, ISubscriptionHandler_M> handlers;
   if (this->dataPtr->shared->localSubscriptions.GetHandlers(fullyQualifiedTopic,
@@ -239,7 +226,12 @@ bool Node::Publish(const std::string &_topic, const ProtoMsg &_msg)
         ISubscriptionHandlerPtr subscriptionHandlerPtr = handler.second;
 
         if (subscriptionHandlerPtr)
+        {
+          if (subscriptionHandlerPtr->GetTypeName() != _msg.GetTypeName())
+            continue;
+
           subscriptionHandlerPtr->RunLocalCallback(fullyQualifiedTopic, _msg);
+        }
         else
         {
           std::cerr << "Node::Publish(): Subscription handler is NULL"
@@ -491,6 +483,12 @@ const std::string& Node::NodeUuid() const
 std::unordered_set<std::string>& Node::TopicsSubscribed() const
 {
   return this->dataPtr->topicsSubscribed;
+}
+
+//////////////////////////////////////////////////
+std::unordered_set<std::string>& Node::TopicsAdvertised() const
+{
+  return this->dataPtr->topicsAdvertised;
 }
 
 //////////////////////////////////////////////////

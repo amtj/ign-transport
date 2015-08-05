@@ -18,31 +18,68 @@
 #include <cstdlib>
 #include <string>
 #include "ignition/transport/Node.hh"
+#include "ignition/transport/ServiceResult.hh"
 #include "ignition/transport/TopicUtils.hh"
 #include "gtest/gtest.h"
 #include "ignition/transport/test_config.h"
 #include "msgs/int.pb.h"
+#include "msgs/vector3d.pb.h"
 
 using namespace ignition;
+using namespace transport;
 
 bool srvExecuted;
 bool responseExecuted;
+bool wrongResponseExecuted;
 
+static const std::string kExceptionMsg = "Exception message";
 std::string partition;
 std::string topic = "/foo";
+std::string topicException = "/exception";
 int data = 5;
 int counter = 0;
 
 //////////////////////////////////////////////////
+/// \brief Initialize some global variables.
+void reset()
+{
+  responseExecuted = false;
+  wrongResponseExecuted = false;
+  counter = 0;
+}
+
+//////////////////////////////////////////////////
 /// \brief Service call response callback.
 void response(const std::string &_topic, const transport::msgs::Int &_rep,
-  bool _result)
+  const ServiceResult &_result)
 {
   EXPECT_EQ(_topic, topic);
   EXPECT_EQ(_rep.data(), data);
-  EXPECT_TRUE(_result);
+  EXPECT_TRUE(_result.ReturnCode() == transport::Result_t::Success);
 
   responseExecuted = true;
+  ++counter;
+}
+
+//////////////////////////////////////////////////
+/// \brief Service call response callback.
+void responseException(const std::string &_topic,
+  const transport::msgs::Int &_rep, const ServiceResult &_result)
+{
+  EXPECT_EQ(_topic, topicException);
+  EXPECT_TRUE(_result.Raised());
+  EXPECT_EQ(_result.ExceptionMsg(), kExceptionMsg);
+
+  responseExecuted = true;
+  ++counter;
+}
+
+//////////////////////////////////////////////////
+/// \brief Service call response callback.
+void wrongResponse(const std::string &_topic,
+  const transport::msgs::Vector3d &_rep, const ServiceResult &_result)
+{
+  wrongResponseExecuted = true;
   ++counter;
 }
 
@@ -92,6 +129,182 @@ TEST(twoProcSrvCall, SrvTwoProcs)
   // Check that the service call response was executed.
   EXPECT_TRUE(responseExecuted);
   EXPECT_EQ(counter, 1);
+
+  // Wait for the child process to return.
+  testing::waitAndCleanupFork(pi);
+}
+
+//////////////////////////////////////////////////
+/// \brief This test spawns a service responser and a service requester. The
+/// requester uses a wrong type for the request argument. The test should verify
+/// that the service call does not succeed.
+TEST(twoProcSrvCall, SrvRequestWrongReq)
+{
+  transport::msgs::Vector3d req;
+  transport::msgs::Int rep;
+  transport::ServiceResult result;
+  unsigned int timeout = 1000;
+
+  std::string responser_path = testing::portablePathUnion(
+     PROJECT_BINARY_PATH,
+     "test/integration/INTEGRATION_twoProcessesSrvCallReplier_aux");
+
+
+  testing::forkHandlerType pi = testing::forkAndRun(responser_path.c_str(),
+    partition.c_str());
+
+  req.set_x(1);
+  req.set_y(2);
+  req.set_z(3);
+
+  reset();
+
+  transport::Node node;
+
+  // Request an asynchronous service call with wrong type in the request.
+  EXPECT_TRUE(node.Request(topic, req, response));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  EXPECT_FALSE(responseExecuted);
+
+  // Request a synchronous service call with wrong type in the request.
+  EXPECT_FALSE(node.Request(topic, req, timeout, rep, result));
+
+  reset();
+
+  // Wait for the child process to return.
+  testing::waitAndCleanupFork(pi);
+}
+
+//////////////////////////////////////////////////
+/// \brief This test spawns a service responser and a service requester. The
+/// requester uses a wrong type for the response argument. The test should
+/// verify that the service call does not succeed.
+TEST(twoProcSrvCall, SrvRequestWrongRep)
+{
+  transport::msgs::Int req;
+  transport::msgs::Vector3d rep;
+  transport::ServiceResult result;
+  unsigned int timeout = 1000;
+
+  std::string responser_path = testing::portablePathUnion(
+     PROJECT_BINARY_PATH,
+     "test/integration/INTEGRATION_twoProcessesSrvCallReplier_aux");
+
+
+  testing::forkHandlerType pi = testing::forkAndRun(responser_path.c_str(),
+    partition.c_str());
+
+  req.set_data(data);
+
+  reset();
+
+  transport::Node node;
+
+  // Request an asynchronous service call with wrong type in the response.
+  EXPECT_TRUE(node.Request(topic, req, wrongResponse));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  EXPECT_FALSE(wrongResponseExecuted);
+
+  // Request a synchronous service call with wrong type in the response.
+  EXPECT_FALSE(node.Request(topic, req, timeout, rep, result));
+
+  reset();
+
+  // Wait for the child process to return.
+  testing::waitAndCleanupFork(pi);
+}
+
+//////////////////////////////////////////////////
+/// \brief This test spawns a service responser and two service requesters. One
+/// requester uses wrong type arguments. The test should verify that only one
+/// of the requesters receives the response.
+TEST(twoProcSrvCall, SrvTwoRequestsOneWrong)
+{
+  transport::msgs::Int req;
+  transport::msgs::Int goodRep;
+  transport::msgs::Vector3d badRep;
+  transport::ServiceResult result;
+  unsigned int timeout = 1000;
+
+  std::string responser_path = testing::portablePathUnion(
+     PROJECT_BINARY_PATH,
+     "test/integration/INTEGRATION_twoProcessesSrvCallReplier_aux");
+
+  testing::forkHandlerType pi = testing::forkAndRun(responser_path.c_str(),
+    partition.c_str());
+
+  req.set_data(data);
+
+  reset();
+
+  transport::Node node;
+
+  // Request service calls with wrong types in the response.
+  EXPECT_FALSE(node.Request(topic, req, timeout, badRep, result));
+  EXPECT_TRUE(node.Request(topic, req, wrongResponse));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  EXPECT_FALSE(wrongResponseExecuted);
+
+  reset();
+
+  // Valid service requests.
+  EXPECT_TRUE(node.Request(topic, req, timeout, goodRep, result));
+  EXPECT_TRUE(node.Request(topic, req, response));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  EXPECT_TRUE(responseExecuted);
+
+  reset();
+
+  // Wait for the child process to return.
+  testing::waitAndCleanupFork(pi);
+}
+
+//////////////////////////////////////////////////
+/// \brief This test spawns a service responser that advertises a service. The
+/// callback that implements the service in the responser raises an exception.
+/// We verify in this test that the requesters (both synchronous and
+/// asynchronous) receive the service response with the exception.
+TEST(twoProcSrvCall, SrvTwoProcsException)
+{
+  std::string responser_path = testing::portablePathUnion(
+    PROJECT_BINARY_PATH,
+    "test/integration/INTEGRATION_twoProcessesSrvCallReplier_aux");
+
+  testing::forkHandlerType pi = testing::forkAndRun(responser_path.c_str(),
+    partition.c_str());
+
+  responseExecuted = false;
+  counter = 0;
+  transport::msgs::Int req;
+  transport::msgs::Int rep;
+  ServiceResult result;
+  unsigned int timeout = 1000;
+
+  req.set_data(data);
+
+  reset();
+
+  transport::Node node;
+  // Request an asynchronous service call that raises an exception.
+  EXPECT_TRUE(node.Request(topicException, req, responseException));
+
+  int i = 0;
+  while (i < 300 && !responseExecuted)
+  {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    ++i;
+  }
+
+  // Check that the service call response was executed.
+  EXPECT_TRUE(responseExecuted);
+  EXPECT_EQ(counter, 1);
+
+  reset();
+
+  // Request an asynchronous service call that raises an exception.
+  EXPECT_TRUE(node.Request(topicException, req, timeout, rep, result));
+  EXPECT_TRUE(result.Raised());
+  EXPECT_EQ(result.ExceptionMsg(), kExceptionMsg);
 
   // Wait for the child process to return.
   testing::waitAndCleanupFork(pi);
