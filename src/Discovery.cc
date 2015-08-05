@@ -57,6 +57,7 @@
 #include "ignition/transport/NetUtils.hh"
 #include "ignition/transport/Packet.hh"
 #include "ignition/transport/Publisher.hh"
+#include "ignition/transport/TopicStorage.hh"
 #include "ignition/transport/TransportTypes.hh"
 
 using namespace ignition;
@@ -463,6 +464,18 @@ bool Discovery::DiscoverSrv(const std::string &_topic)
   }
 
   return true;
+}
+
+//////////////////////////////////////////////////
+TopicStorage<MessagePublisher>& Discovery::GetDiscoveryMsgInfo() const
+{
+  return this->dataPtr->infoMsg;
+}
+
+//////////////////////////////////////////////////
+TopicStorage<ServicePublisher>& Discovery::GetDiscoverySrvInfo() const
+{
+  return this->dataPtr->infoSrv;
 }
 
 //////////////////////////////////////////////////

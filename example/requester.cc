@@ -30,7 +30,7 @@ int main(int argc, char **argv)
   req.set_data("HELLO");
 
   example::msgs::StringMsg rep;
-  bool result;
+  ignition::transport::ServiceResult result;
   unsigned int timeout = 5000;
 
   // Request the "/echo" service.
@@ -38,10 +38,15 @@ int main(int argc, char **argv)
 
   if (executed)
   {
-    if (result)
+    if (result.Succeed())
       std::cout << "Response: [" << rep.data() << "]" << std::endl;
-    else
+    else if (result.Failed())
       std::cout << "Service call failed" << std::endl;
+    else
+    {
+      std::cout << "Service call exception:" << std::endl;
+      std::cout << "\t" << result.ExceptionMsg() << std::endl;
+    }
   }
   else
     std::cerr << "Service call timed out" << std::endl;

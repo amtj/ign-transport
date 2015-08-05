@@ -22,10 +22,11 @@
 
 //////////////////////////////////////////////////
 /// \brief Service response callback.
-void responseCb(const std::string &_topic, const example::msgs::StringMsg &_rep,
-  bool _result)
+void responseCb(const std::string &_topic,
+  const example::msgs::StringMsg &_rep,
+  const ignition::transport::ServiceResult &_result)
 {
-  if (_result)
+  if (_result.ReturnCode() == ignition::transport::Result_t::Success)
     std::cout << "Response: [" << _rep.data() << "]" << std::endl;
   else
     std::cerr << "Service call failed" << std::endl;
