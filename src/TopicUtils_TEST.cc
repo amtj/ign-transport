@@ -1,0 +1,327 @@
+/*
+ * Copyright (C) 2014 Open Source Robotics Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+*/
+
+#include <map>
+#include <string>
+#include "ignition/transport/TopicUtils.hh"
+#include "gtest/gtest.h"
+
+using namespace ignition;
+
+//////////////////////////////////////////////////
+/// \brief Check the topic names.
+TEST(TopicUtilsTest, testTopics)
+{
+  EXPECT_TRUE(transport::TopicUtils::IsValidTopic("abc"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidTopic("/abc"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidTopic("abc/de"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidTopic("a"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidTopic("abc/"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidTopic("/abc/"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidTopic("/abc/d"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidTopic("/abc/d/e"));
+
+  EXPECT_FALSE(transport::TopicUtils::IsValidTopic(""));
+  EXPECT_FALSE(transport::TopicUtils::IsValidTopic(" "));
+  EXPECT_FALSE(transport::TopicUtils::IsValidTopic("~a"));
+  EXPECT_FALSE(transport::TopicUtils::IsValidTopic("topic1 "));
+  EXPECT_FALSE(transport::TopicUtils::IsValidTopic("abc//def"));
+  EXPECT_FALSE(transport::TopicUtils::IsValidTopic("ab~cd"));
+  EXPECT_FALSE(transport::TopicUtils::IsValidTopic("/"));
+  EXPECT_FALSE(transport::TopicUtils::IsValidTopic("~/"));
+  EXPECT_FALSE(transport::TopicUtils::IsValidTopic("~"));
+  EXPECT_FALSE(transport::TopicUtils::IsValidTopic("@partition"));
+}
+
+//////////////////////////////////////////////////
+/// \brief Check the topic namespace.
+TEST(TopicUtilsTest, testNamespaces)
+{
+  EXPECT_TRUE(transport::TopicUtils::IsValidNamespace("/abcde"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidNamespace("abcde"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidNamespace("abcde/"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidNamespace("/abcde/"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidNamespace("/abcde/fg"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidNamespace("/abcde/fg/"));
+  EXPECT_TRUE(transport::TopicUtils::IsValidNamespace(""));
+
+  EXPECT_FALSE(transport::TopicUtils::IsValidNamespace(" "));
+  EXPECT_FALSE(transport::TopicUtils::IsValidNamespace("ns "));
+  EXPECT_FALSE(transport::TopicUtils::IsValidNamespace("abc//def"));
+  EXPECT_FALSE(transport::TopicUtils::IsValidNamespace("ab~cd"));
+  EXPECT_FALSE(transport::TopicUtils::IsValidNamespace("~/abcde"));
+  EXPECT_FALSE(transport::TopicUtils::IsValidNamespace("~abcde"));
+  EXPECT_FALSE(transport::TopicUtils::IsValidNamespace("@namespace"));
+}
+
+//////////////////////////////////////////////////
+/// \brief Check GetScopeName.
+TEST(TopicUtilsTest, testGetFullyQualifiedName)
+{
+  // {String to try, result, string result}
+  using ValidationT = std::map<std::string, std::pair<bool, std::string>>;
+  ValidationT partitions =
+  {
+    {"@partition",   {false, ""}},
+    {"@partition/@", {false, ""}},
+    {"@@",           {false, ""}},
+    {"",             {true,  "@@"}},
+    {"partition/",   {true,  "@/partition@"}},
+  };
+
+  ValidationT namespaces =
+  {
+    {"~ns", {false, ""}},
+    {"",    {true,  "/"}},
+    {"abc", {true, "/abc/"}}
+  };
+
+  ValidationT topics =
+  {
+    {"~/def",    {false, ""}},
+    {"~def",     {false, ""}},
+    {"/def",     {true,  "def"}},
+    {"def/",     {true,  "def"}},
+    {"def/ghi",  {true,  "def/ghi"}},
+    {"def/ghi/", {true,  "def/ghi"}},
+    {"~/def/",   {false, ""}},
+    {"~def/",    {false, ""}}
+  };
+
+  std::string p0 = "@partition";
+  std::string p1 = "@partition/@";
+  std::string p2 = "@@";
+  std::string p3 = "partition";
+  std::string p4 = "";
+  std::string p5 = "partition/";
+
+  std::string ns0 = "~ns";
+  std::string ns1 = "";
+  std::string ns2 = "abc";
+
+  std::string t1 = "~/def";
+  std::string t2 = "~def";
+  std::string t3 = "/def";
+  std::string t4 = "def/";
+  std::string t5 = "def/ghi";
+  std::string t6 = "def/ghi/";
+  std::string t7 = "~/def/";
+  std::string t8 = "~def/";
+  std::string name;
+
+  for (auto p : partitions)
+    for (auto ns : namespaces)
+      for (auto t : topics)
+      {
+        auto expectedRes = p.second.first && ns.second.first && t.second.first;
+        auto res = transport::TopicUtils::GetFullyQualifiedName(p.first,
+          ns.first, t.first, name);
+        std::cout << "Partition: " << p.first << std::endl;
+        std::cout << "Namespace: " << ns.first << std::endl;
+        std::cout << "Topic: " << t.first << std::endl;
+        if (res)
+        {
+          auto expected = p.second.second + ns.second.second + t.second.second;
+          EXPECT_TRUE(expectedRes);
+          EXPECT_EQ(name, expected);
+        }
+        else
+          EXPECT_FALSE(expectedRes);
+      }
+
+
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns0, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns0, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns0, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns0, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns0, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns0, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns0, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns0, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns1, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns1, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns1, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns1, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns1, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns1, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns1, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns1, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns2, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns2, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns2, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns2, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns2, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns2, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns2, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p0, ns2, t8, name));
+
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns0, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns0, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns0, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns0, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns0, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns0, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns0, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns0, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns1, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns1, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns1, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns1, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns1, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns1, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns1, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns1, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns2, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns2, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns2, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns2, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns2, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns2, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns2, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p1, ns2, t8, name));
+
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns0, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns0, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns0, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns0, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns0, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns0, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns0, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns0, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns1, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns1, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns1, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns1, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns1, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns1, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns1, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns1, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns2, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns2, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns2, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns2, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns2, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns2, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns2, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p2, ns2, t8, name));
+
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns0, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns0, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns0, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns0, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns0, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns0, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns0, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns0, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns1, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns1, t2, name));
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p3, ns1, t3, name));
+  EXPECT_EQ(name, "@/partition@/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p3, ns1, t4, name));
+  EXPECT_EQ(name, "@/partition@/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p3, ns1, t5, name));
+  EXPECT_EQ(name, "@/partition@/def/ghi");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p3, ns1, t6, name));
+  EXPECT_EQ(name, "@/partition@/def/ghi");
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns1, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns1, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns2, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns2, t2, name));
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p3, ns2, t3, name));
+  EXPECT_EQ(name, "@/partition@/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p3, ns2, t4, name));
+  EXPECT_EQ(name, "@/partition@/abc/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p3, ns2, t5, name));
+  EXPECT_EQ(name, "@/partition@/abc/def/ghi");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p3, ns2, t6, name));
+  EXPECT_EQ(name, "@/partition@/abc/def/ghi");
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns2, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p3, ns2, t8, name));
+
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns0, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns0, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns0, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns0, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns0, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns0, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns0, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns0, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns1, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns1, t2, name));
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p4, ns1, t3, name));
+  EXPECT_EQ(name, "@@/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p4, ns1, t4, name));
+  EXPECT_EQ(name, "@@/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p4, ns1, t5, name));
+  EXPECT_EQ(name, "@@/def/ghi");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p4, ns1, t6, name));
+  EXPECT_EQ(name, "@@/def/ghi");
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns1, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns1, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns2, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns2, t2, name));
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p4, ns2, t3, name));
+  EXPECT_EQ(name, "@@/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p4, ns2, t4, name));
+  EXPECT_EQ(name, "@@/abc/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p4, ns2, t5, name));
+  EXPECT_EQ(name, "@@/abc/def/ghi");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p4, ns2, t6, name));
+  EXPECT_EQ(name, "@@/abc/def/ghi");
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns2, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p4, ns2, t8, name));
+
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns0, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns0, t2, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns0, t3, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns0, t4, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns0, t5, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns0, t6, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns0, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns0, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns1, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns1, t2, name));
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p5, ns1, t3, name));
+  EXPECT_EQ(name, "@/partition@/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p5, ns1, t4, name));
+  EXPECT_EQ(name, "@/partition@/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p5, ns1, t5, name));
+  EXPECT_EQ(name, "@/partition@/def/ghi");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p5, ns1, t6, name));
+  EXPECT_EQ(name, "@/partition@/def/ghi");
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns1, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns1, t8, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns2, t1, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns2, t2, name));
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p5, ns2, t3, name));
+  EXPECT_EQ(name, "@/partition@/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p5, ns2, t4, name));
+  EXPECT_EQ(name, "@/partition@/abc/def");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p5, ns2, t5, name));
+  EXPECT_EQ(name, "@/partition@/abc/def/ghi");
+  EXPECT_TRUE(transport::TopicUtils::GetFullyQualifiedName(p5, ns2, t6, name));
+  EXPECT_EQ(name, "@/partition@/abc/def/ghi");
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns2, t7, name));
+  EXPECT_FALSE(transport::TopicUtils::GetFullyQualifiedName(p5, ns2, t8, name));
+}
+
+//////////////////////////////////////////////////
+int main(int argc, char **argv)
+{
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
