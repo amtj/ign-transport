@@ -577,7 +577,11 @@ void NodeShared::RecvSrvResponse()
     reqHandlerPtr->NotifyResult(topic, rep, result);
 
     // Remove the handler.
-    this->requests.RemoveHandler(topic, nodeUuid, reqUuid);
+    if (!this->requests.RemoveHandler(topic, nodeUuid, reqUuid))
+    {
+      std::cerr << "NodeShare::RecvSrvResponse(): "
+                << "Error removing request handler" << std::endl;
+    }
   }
   else
   {
@@ -623,7 +627,10 @@ void NodeShared::SendPendingRemoteReqs(const std::string &_topic)
       // Mark the handler as requested.
       req.second->Requested(true);
 
-      auto data = req.second->Serialize();
+      std::string data;
+      if (!req.second->Serialize(data))
+        continue;
+
       auto nodeUuid = req.second->NodeUuid();
       auto reqUuid = req.second->HandlerUuid();
 
