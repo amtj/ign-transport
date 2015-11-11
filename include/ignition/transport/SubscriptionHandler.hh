@@ -62,12 +62,13 @@ namespace ignition
       public: virtual bool RunLocalCallback(const std::string &_topic,
                                      const transport::ProtoMsg &_msg) const = 0;
 
-
       /// \brief Create a specific protobuf message given its serialized data.
       /// \param[in] _data The serialized data.
       /// \return Pointer to the specific protobuf message.
       public: virtual const std::shared_ptr<transport::ProtoMsg> CreateMsg(
         const std::string &_data) const = 0;
+
+      public: virtual std::string GetTypeName() = 0;
 
       /// \brief Get the node UUID.
       /// \return The string representation of the node UUID.
@@ -118,6 +119,11 @@ namespace ignition
         }
 
         return msgPtr;
+      }
+
+      public: std::string GetTypeName()
+      {
+        return T().GetTypeName();
       }
 
       /// \brief Set the callback for this handler.
