@@ -31,6 +31,7 @@
 # pragma warning(pop)
 #endif
 #include "ignition/transport/Discovery.hh"
+#include "ignition/transport/Helpers.hh"
 #include "ignition/transport/NodeShared.hh"
 #include "ignition/transport/Packet.hh"
 #include "ignition/transport/RepHandler.hh"
@@ -63,7 +64,13 @@ NodeShared::NodeShared()
     exit(false)
 {
   // If IGN_VERBOSE=1 enable the verbose mode.
-  char const *tmp = std::getenv("IGN_VERBOSE");
+  char *tmp;
+#ifdef _MSC_VER
+  size_t sz = 0;
+  _dupenv_s(&tmp, &sz, "IGN_VERBOSE");
+#else
+  tmp = std::getenv("IGN_VERBOSE");
+#endif
   if (tmp)
     this->verbose = std::string(tmp) == "1";
 
@@ -187,12 +194,13 @@ NodeShared::~NodeShared()
   replier.reset();
   delete this->context;
 #else
-  while (true)
+  bool exitLoop = false;
+  while (!exitLoop)
   {
     std::lock_guard<std::mutex> lock(this->exitMutex);
     {
       if (this->threadReceptionExiting)
-        break;
+        exitLoop = true;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
@@ -207,7 +215,8 @@ NodeShared::~NodeShared()
 //////////////////////////////////////////////////
 void NodeShared::RunReceptionTask()
 {
-  while (true)
+  bool exitLoop = false;
+  while (!exitLoop)
   {
     // Poll socket for a reply, with timeout.
     zmq::pollitem_t items[] =
@@ -240,7 +249,7 @@ void NodeShared::RunReceptionTask()
     {
       std::lock_guard<std::mutex> lock(this->exitMutex);
       if (this->exit)
-        break;
+        exitLoop = true;
     }
   }
 #ifdef _WIN32
@@ -733,7 +742,7 @@ void NodeShared::SendPendingRemoteReqs(const std::string &_topic,
         memcpy(msg.data(), _repType.data(), _repType.size());
         this->requester->send(msg, 0);
       }
-      catch(const zmq::error_t& ze)
+      catch(const zmq::error_t& /*ze*/)
       {
         // Debug output.
         // std::cerr << "Error connecting [" << ze.what() << "]\n";
@@ -824,7 +833,7 @@ void NodeShared::OnNewConnection(const MessagePublisher &_pub)
       }
     }
     // The remote node might not be available when we are connecting.
-    catch(const zmq::error_t& ze)
+    catch(const zmq::error_t& /*ze*/)
     {
     }
   }
