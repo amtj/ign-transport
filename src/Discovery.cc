@@ -15,11 +15,7 @@
  *
 */
 
-#ifdef _MSC_VER
-# pragma warning(push, 0)
-#endif
 #ifdef _WIN32
-  // For socket(), connect(), send(), and recv().
   #include <Winsock2.h>
   #include <Ws2def.h>
   #include <Ws2ipdef.h>
@@ -43,15 +39,25 @@
   using raw_type = void;
 #endif
 
+#ifdef _MSC_VER
+  #pragma warning(push, 0)
+#endif
 #include <zmq.hpp>
+#ifdef _WIN32
+  #pragma warning(pop)
+  // Suppress "decorated name length exceed" warning in STL.
+  #pragma warning(disable: 4503)
+  // Suppress "depreted API warnings" in WINSOCK.
+  #pragma warning(disable: 4996)
+  // For socket(), connect(), send(), and recv().
+#endif
+
 #include <chrono>
 #include <iostream>
 #include <mutex>
 #include <string>
 #include <vector>
-#ifdef _MSC_VER
-# pragma warning(pop)
-#endif
+
 #include "ignition/transport/AdvertiseOptions.hh"
 #include "ignition/transport/Discovery.hh"
 #include "ignition/transport/DiscoveryPrivate.hh"
@@ -60,12 +66,6 @@
 #include "ignition/transport/Publisher.hh"
 #include "ignition/transport/TopicStorage.hh"
 #include "ignition/transport/TransportTypes.hh"
-
-#ifdef _MSC_VER
-  // Disable Windows deprecation warnings
-  #pragma warning(push)
-  #pragma warning(disable: 4996)
-#endif
 
 using namespace ignition;
 using namespace transport;
@@ -371,38 +371,42 @@ bool Discovery::UnadvertiseSrv(const std::string &_topic,
 //////////////////////////////////////////////////
 bool Discovery::DiscoverMsg(const std::string &_topic)
 {
-  std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+  MsgDiscoveryCallback cb;
+  bool found;
+  MsgAddresses_M addresses;
 
-  if (!this->dataPtr->enabled)
-    return false;
-
-  MsgDiscoveryCallback cb = this->dataPtr->connectionCb;
-  MessagePublisher pub;
-
-  pub.SetTopic(_topic);
-  pub.SetPUuid(this->dataPtr->pUuid);
-  pub.SetScope(Scope_t::ALL);
-
-  // Broadcast a discovery request for this service call.
-  this->SendMsg(SubType, pub);
-
-  // I already have information about this topic.
-  if (this->dataPtr->infoMsg.HasTopic(_topic))
   {
-    MsgAddresses_M addresses;
-    if (this->dataPtr->infoMsg.Publishers(_topic, addresses))
+    std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+
+    if (!this->dataPtr->enabled)
+      return false;
+
+    cb = this->dataPtr->connectionCb;
+
+    MessagePublisher pub;
+    pub.SetTopic(_topic);
+    pub.SetPUuid(this->dataPtr->pUuid);
+    pub.SetScope(Scope_t::ALL);
+
+    // Broadcast a discovery request for this service call.
+    this->SendMsg(SubType, pub);
+
+    found = this->dataPtr->infoMsg.Publishers(_topic, addresses);
+  }
+
+  if (found)
+  {
+    // I already have information about this topic.
+    for (auto &proc : addresses)
     {
-      for (auto &proc : addresses)
+      for (auto &node : proc.second)
       {
-        for (auto &node : proc.second)
+        if (cb)
         {
-          if (cb)
-          {
-            // Execute the user's callback for a service request. Notice
-            // that we only execute one callback for preventing receive multiple
-            // service responses for a single request.
-            cb(node);
-          }
+          // Execute the user's callback for a service request. Notice
+          // that we only execute one callback for preventing receive multiple
+          // service responses for a single request.
+          cb(node);
         }
       }
     }
@@ -414,38 +418,42 @@ bool Discovery::DiscoverMsg(const std::string &_topic)
 //////////////////////////////////////////////////
 bool Discovery::DiscoverSrv(const std::string &_topic)
 {
-  std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+  SrvDiscoveryCallback cb;
+  SrvAddresses_M addresses;
+  bool found;
 
-  if (!this->dataPtr->enabled)
-    return false;
-
-  SrvDiscoveryCallback cb = this->dataPtr->connectionSrvCb;
-  ServicePublisher pub;
-
-  pub.SetTopic(_topic);
-  pub.SetPUuid(this->dataPtr->pUuid);
-  pub.SetScope(Scope_t::ALL);
-
-  // Broadcast a discovery request for this service call.
-  this->SendMsg(SubSrvType, pub);
-
-  // I already have information about this topic.
-  if (this->dataPtr->infoSrv.HasTopic(_topic))
   {
-    SrvAddresses_M addresses;
-    if (this->dataPtr->infoSrv.Publishers(_topic, addresses))
+    std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+
+    if (!this->dataPtr->enabled)
+      return false;
+
+    cb = this->dataPtr->connectionSrvCb;
+
+    ServicePublisher pub;
+    pub.SetTopic(_topic);
+    pub.SetPUuid(this->dataPtr->pUuid);
+    pub.SetScope(Scope_t::ALL);
+
+    // Broadcast a discovery request for this service call.
+    this->SendMsg(SubSrvType, pub);
+
+    found = this->dataPtr->infoSrv.Publishers(_topic, addresses);
+  }
+
+  if (found)
+  {
+    // I already have information about this service.
+    for (auto &proc : addresses)
     {
-      for (auto &proc : addresses)
+      for (auto &node : proc.second)
       {
-        for (auto &node : proc.second)
+        if (cb)
         {
-          if (cb)
-          {
-            // Execute the user's callback for a service request. Notice
-            // that we only execute one callback for preventing receive multiple
-            // service responses for a single request.
-            cb(node);
-          }
+          // Execute the user's callback for a service request. Notice
+          // that we only execute one callback for preventing receive multiple
+          // service responses for a single request.
+          cb(node);
         }
       }
     }
@@ -768,8 +776,6 @@ void Discovery::DispatchDiscoveryMsg(const std::string &_fromIp, char *_msg)
   Header header;
   char *pBody = _msg;
 
-  std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
-
   // Create the header from the raw bytes.
   header.Unpack(_msg);
   pBody += header.HeaderLength();
@@ -784,8 +790,19 @@ void Discovery::DispatchDiscoveryMsg(const std::string &_fromIp, char *_msg)
   if (recvPUuid == this->dataPtr->pUuid)
     return;
 
-  // Update timestamp.
-  this->dataPtr->activity[recvPUuid] = std::chrono::steady_clock::now();
+  // Update timestamp and cache the callbacks.
+  MsgDiscoveryCallback connectCb;
+  MsgDiscoveryCallback disconnectCb;
+  SrvDiscoveryCallback connectSrvCb;
+  SrvDiscoveryCallback disconnectSrvCb;
+  {
+    std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+    this->dataPtr->activity[recvPUuid] = std::chrono::steady_clock::now();
+    connectCb = this->dataPtr->connectionCb;
+    disconnectCb = this->dataPtr->disconnectionCb;
+    connectSrvCb = this->dataPtr->connectionSrvCb;
+    disconnectSrvCb = this->dataPtr->disconnectionSrvCb;
+  }
 
   switch (header.Type())
   {
@@ -804,12 +821,16 @@ void Discovery::DispatchDiscoveryMsg(const std::string &_fromIp, char *_msg)
       }
 
       // Register an advertised address for the topic.
-      bool added = this->dataPtr->infoMsg.AddPublisher(advMsg.Publisher());
+      bool added;
+      {
+        std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+        added = this->dataPtr->infoMsg.AddPublisher(advMsg.Publisher());
+      }
 
-      if (added && this->dataPtr->connectionCb)
+      if (added && connectCb)
       {
         // Execute the client's callback.
-        this->dataPtr->connectionCb(advMsg.Publisher());
+        connectCb(advMsg.Publisher());
       }
 
       break;
@@ -828,13 +849,17 @@ void Discovery::DispatchDiscoveryMsg(const std::string &_fromIp, char *_msg)
         return;
       }
 
-      // Register an advertised address for the topic.
-      bool added = this->dataPtr->infoSrv.AddPublisher(advSrv.Publisher());
+      // Register an advertised address for the service.
+      bool added;
+      {
+        std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+        added = this->dataPtr->infoSrv.AddPublisher(advSrv.Publisher());
+      }
 
-      if (added && this->dataPtr->connectionSrvCb)
+      if (added && connectSrvCb)
       {
         // Execute the client's callback.
-        this->dataPtr->connectionSrvCb(advSrv.Publisher());
+        connectSrvCb(advSrv.Publisher());
       }
 
       break;
@@ -847,25 +872,27 @@ void Discovery::DispatchDiscoveryMsg(const std::string &_fromIp, char *_msg)
       auto recvTopic = subMsg.Topic();
 
       // Check if at least one of my nodes advertises the topic requested.
-      if (this->dataPtr->infoMsg.HasAnyPublishers(recvTopic,
-        this->dataPtr->pUuid))
+      bool found;
+      MsgAddresses_M addresses;
       {
-        MsgAddresses_M addresses;
-        if (this->dataPtr->infoMsg.Publishers(recvTopic, addresses))
-        {
-          for (auto nodeInfo : addresses[this->dataPtr->pUuid])
-          {
-            // Check scope of the topic.
-            if ((nodeInfo.Scope() == Scope_t::PROCESS) ||
-                (nodeInfo.Scope() == Scope_t::HOST &&
-                 _fromIp != this->dataPtr->hostAddr))
-            {
-              continue;
-            }
+        std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+        found = this->dataPtr->infoMsg.Publishers(recvTopic, addresses);
+      }
 
-            // Answer an ADVERTISE message.
-            this->SendMsg(AdvType, nodeInfo);
+      if (found)
+      {
+        for (auto nodeInfo : addresses[this->dataPtr->pUuid])
+        {
+          // Check scope of the topic.
+          if ((nodeInfo.Scope() == Scope_t::PROCESS) ||
+              (nodeInfo.Scope() == Scope_t::HOST &&
+               _fromIp != this->dataPtr->hostAddr))
+          {
+            continue;
           }
+
+          // Answer an ADVERTISE message.
+          this->SendMsg(AdvType, nodeInfo);
         }
       }
 
@@ -878,26 +905,28 @@ void Discovery::DispatchDiscoveryMsg(const std::string &_fromIp, char *_msg)
       subMsg.Unpack(pBody);
       auto recvTopic = subMsg.Topic();
 
-      // Check if at least one of my nodes advertises the topic requested.
-      if (this->dataPtr->infoSrv.HasAnyPublishers(
-        recvTopic, this->dataPtr->pUuid))
+      // Check if at least one of my nodes advertises the service requested.
+      bool found;
+      SrvAddresses_M addresses;
       {
-        SrvAddresses_M addresses;
-        if (this->dataPtr->infoSrv.Publishers(recvTopic, addresses))
-        {
-          for (auto nodeInfo : addresses[this->dataPtr->pUuid])
-          {
-            // Check scope of the topic.
-            if ((nodeInfo.Scope() == Scope_t::PROCESS) ||
-                (nodeInfo.Scope() == Scope_t::HOST &&
-                 _fromIp != this->dataPtr->hostAddr))
-            {
-              continue;
-            }
+        std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+        found = this->dataPtr->infoSrv.Publishers(recvTopic, addresses);
+      }
 
-            // Answer an ADVERTISE message.
-            this->SendMsg(AdvSrvType, nodeInfo);
+      if (found)
+      {
+        for (auto nodeInfo : addresses[this->dataPtr->pUuid])
+        {
+          // Check scope of the topic.
+          if ((nodeInfo.Scope() == Scope_t::PROCESS) ||
+              (nodeInfo.Scope() == Scope_t::HOST &&
+               _fromIp != this->dataPtr->hostAddr))
+          {
+            continue;
           }
+
+          // Answer an ADVERTISE_SRV message.
+          this->SendMsg(AdvSrvType, nodeInfo);
         }
       }
 
@@ -911,29 +940,35 @@ void Discovery::DispatchDiscoveryMsg(const std::string &_fromIp, char *_msg)
     case ByeType:
     {
       // Remove the activity entry for this publisher.
-      this->dataPtr->activity.erase(recvPUuid);
+      {
+        std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+        this->dataPtr->activity.erase(recvPUuid);
+      }
 
-      if (this->dataPtr->disconnectionCb)
+      if (disconnectCb)
       {
         MessagePublisher msgPub;
         msgPub.SetPUuid(recvPUuid);
         msgPub.SetScope(Scope_t::ALL);
         // Notify the new disconnection.
-        this->dataPtr->disconnectionCb(msgPub);
+        disconnectCb(msgPub);
       }
 
-      if (this->dataPtr->disconnectionSrvCb)
+      if (disconnectSrvCb)
       {
         ServicePublisher srvPub;
         srvPub.SetPUuid(recvPUuid);
         srvPub.SetScope(Scope_t::ALL);
         // Notify the new disconnection.
-        this->dataPtr->disconnectionSrvCb(srvPub);
+        disconnectSrvCb(srvPub);
       }
 
       // Remove the address entry for this topic.
-      this->dataPtr->infoMsg.DelPublishersByProc(recvPUuid);
-      this->dataPtr->infoSrv.DelPublishersByProc(recvPUuid);
+      {
+        std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+        this->dataPtr->infoMsg.DelPublishersByProc(recvPUuid);
+        this->dataPtr->infoSrv.DelPublishersByProc(recvPUuid);
+      }
 
       break;
     }
@@ -951,17 +986,18 @@ void Discovery::DispatchDiscoveryMsg(const std::string &_fromIp, char *_msg)
         return;
       }
 
-      MsgDiscoveryCallback cb = this->dataPtr->disconnectionCb;
-
-      if (cb)
+      if (disconnectCb)
       {
         // Notify the new disconnection.
-        cb(advMsg.Publisher());
+        disconnectCb(advMsg.Publisher());
       }
 
       // Remove the address entry for this topic.
-      this->dataPtr->infoMsg.DelPublisherByNode(advMsg.Publisher().Topic(),
-        advMsg.Publisher().PUuid(), advMsg.Publisher().NUuid());
+      {
+        std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+        this->dataPtr->infoMsg.DelPublisherByNode(advMsg.Publisher().Topic(),
+          advMsg.Publisher().PUuid(), advMsg.Publisher().NUuid());
+      }
 
       break;
     }
@@ -979,17 +1015,18 @@ void Discovery::DispatchDiscoveryMsg(const std::string &_fromIp, char *_msg)
         return;
       }
 
-      SrvDiscoveryCallback cb = this->dataPtr->disconnectionSrvCb;
-
-      if (cb)
+      if (disconnectSrvCb)
       {
         // Notify the new disconnection.
-        cb(advSrv.Publisher());
+        disconnectSrvCb(advSrv.Publisher());
       }
 
       // Remove the address entry for this topic.
-      this->dataPtr->infoSrv.DelPublisherByNode(advSrv.Publisher().Topic(),
-        advSrv.Publisher().PUuid(), advSrv.Publisher().NUuid());
+      {
+        std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+        this->dataPtr->infoSrv.DelPublisherByNode(advSrv.Publisher().Topic(),
+          advSrv.Publisher().PUuid(), advSrv.Publisher().NUuid());
+      }
 
       break;
     }
@@ -1134,6 +1171,3 @@ bool Discovery::RegisterNetIface(const std::string &_ip)
   return true;
 }
 
-#ifdef _MSC_VER
-  #pragma warning(pop)
-#endif
