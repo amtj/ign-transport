@@ -15,10 +15,13 @@
  *
 */
 
+#include <stdlib.h>
+
 #include <chrono>
 #include <memory>
 #include <string>
 #include <thread>
+
 #include "gtest/gtest.h"
 #include "ignition/transport/AdvertiseOptions.hh"
 #include "ignition/transport/Discovery.hh"
@@ -185,7 +188,7 @@ void onDisconnectionSrv(const transport::ServicePublisher &_publisher)
 class MyClass
 {
   /// \brief Class constructor.
-  public: MyClass(const std::string &_pUuid)
+  public: explicit MyClass(const std::string &_pUuid)
   {
     this->discov.reset(new transport::Discovery(_pUuid));
   }

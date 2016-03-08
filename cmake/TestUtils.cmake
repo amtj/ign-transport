@@ -22,6 +22,22 @@ macro (ign_build_tests)
       protobuf_compilation
     )
 
+    if (MSVC)
+      # Suppress Protobuf message generation warnings.
+      target_compile_options(${BINARY_NAME} PUBLIC "/wd4018")
+      target_compile_options(${BINARY_NAME} PUBLIC "/wd4100")
+      target_compile_options(${BINARY_NAME} PUBLIC "/wd4127")
+      target_compile_options(${BINARY_NAME} PUBLIC "/wd4244")
+      target_compile_options(${BINARY_NAME} PUBLIC "/wd4267")
+      target_compile_options(${BINARY_NAME} PUBLIC "/wd4512")
+
+      # Suppress the "decorated name length exceed" warning (it happens inside the STL).
+      target_compile_options(${BINARY_NAME} PUBLIC "/wd4503")
+
+      # Suppress the "unknown pragma" warning due to #pragma GCC in gtest.
+      target_compile_options(${BINARY_NAME} PUBLIC "/wd4068")
+    endif()
+
     target_link_libraries(${BINARY_NAME}
       ${PROJECT_NAME_LOWER}${PROJECT_MAJOR_VERSION}
     )
