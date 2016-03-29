@@ -480,6 +480,7 @@ const TopicStorage<ServicePublisher> &Discovery::DiscoverySrvInfo() const
 bool Discovery::MsgPublishers(const std::string &_topic,
                               MsgAddresses_M &_publishers)
 {
+  this->dataPtr->WaitForInit();
   std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
   return this->dataPtr->infoMsg.Publishers(_topic, _publishers);
 }
@@ -1128,23 +1129,10 @@ void Discovery::PrintCurrentState() const
 //////////////////////////////////////////////////
 void Discovery::TopicList(std::vector<std::string> &_topics) const
 {
-  bool ready;
-  {
-    std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
-    ready = this->dataPtr->initialized;
-  }
+  this->dataPtr->WaitForInit();
 
-  if (!ready)
-  {
-    std::unique_lock<std::recursive_mutex> lk(this->dataPtr->mutex);
-    this->dataPtr->initializedCv.wait(
-        lk, [this]{return this->dataPtr->initialized;});
-  }
-
-  {
-    std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
-    this->dataPtr->infoMsg.TopicList(_topics);
-  }
+  std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+  this->dataPtr->infoMsg.TopicList(_topics);
 }
 
 //////////////////////////////////////////////////
@@ -1216,4 +1204,20 @@ bool Discovery::RegisterNetIface(const std::string &_ip)
   }
 
   return true;
+}
+
+/////////////////////////////////////////////////
+void DiscoveryPrivate::WaitForInit()
+{
+  bool ready;
+  {
+    std::lock_guard<std::recursive_mutex> lock(this->mutex);
+    ready = this->initialized;
+  }
+
+  if (!ready)
+  {
+    std::unique_lock<std::recursive_mutex> lk(this->mutex);
+    this->initializedCv.wait(lk, [this]{return this->initialized;});
+  }
 }

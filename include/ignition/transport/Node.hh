@@ -31,6 +31,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -583,6 +584,13 @@ namespace ignition
       /// value of 1000 ms, sets the maximum blocking time period.
       /// \param[out] _topics List of advertised topics.
       public: void TopicList(std::vector<std::string> &_topics) const;
+
+      /// \brief Get the information about a topic.
+      /// \param[in] _topic Name of the topic.
+      /// \param[out] _publishers List of publishers on the topic
+      /// \return False if unable to get topic infor
+      public: bool TopicInfo(const std::string &_topic,
+                             std::vector<MessagePublisher> &_publishers) const;
 
       /// \brief Get the list of topics currently advertised in the network.
       /// Note that this function can block for some time if the
