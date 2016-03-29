@@ -471,3 +471,48 @@ NodeOptions &Node::Options() const
 {
   return this->dataPtr->options;
 }
+
+//////////////////////////////////////////////////
+bool Node::TopicInfo(const std::string &_topic,
+                     std::vector<MessagePublisher> &_publishers) const
+{
+  std::lock_guard<std::recursive_mutex> lk(this->dataPtr->shared->mutex);
+
+  // Construct a topic name with the partition and namespace
+  std::string fullyQualifiedTopic;
+  if (!TopicUtils::FullyQualifiedName(this->Options().Partition(),
+    this->Options().NameSpace(), _topic, fullyQualifiedTopic))
+  {
+    return false;
+  }
+
+  // this->dataPtr->shared->discovery->DiscoverMsg(fullyQualifiedTopic);
+
+  // Get all the publishers on the given topics
+  MsgAddresses_M pubs;
+  if (!this->dataPtr->shared->discovery->MsgPublishers(
+        fullyQualifiedTopic, pubs))
+  {
+    return false;
+  }
+
+  std::cout << "Pub size[" << pubs.size() << "]\n";
+
+  // Copy the publishers.
+  for (MsgAddresses_M::iterator iter = pubs.begin(); iter != pubs.end(); ++iter)
+  {
+    std::cout << "Iter size[" << iter->second.size() << "]\n";
+    for (std::vector<MessagePublisher>::iterator pubIter = iter->second.begin();
+         pubIter != iter->second.end(); ++pubIter)
+    {
+      // Add the publisher if it doesn't already exist.
+      //if (std::find(_publishers.begin(), _publishers.end(), *pubIter) ==
+      //    _publishers.end())
+      {
+        _publishers.push_back(*pubIter);
+      }
+    }
+  }
+
+  return true;
+}
