@@ -480,7 +480,6 @@ const TopicStorage<ServicePublisher> &Discovery::DiscoverySrvInfo() const
 bool Discovery::MsgPublishers(const std::string &_topic,
                               MsgAddresses_M &_publishers)
 {
-  this->dataPtr->WaitForInit();
   std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
   return this->dataPtr->infoMsg.Publishers(_topic, _publishers);
 }
@@ -1129,8 +1128,6 @@ void Discovery::PrintCurrentState() const
 //////////////////////////////////////////////////
 void Discovery::TopicList(std::vector<std::string> &_topics) const
 {
-  this->dataPtr->WaitForInit();
-
   std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
   this->dataPtr->infoMsg.TopicList(_topics);
 }
@@ -1138,23 +1135,8 @@ void Discovery::TopicList(std::vector<std::string> &_topics) const
 //////////////////////////////////////////////////
 void Discovery::ServiceList(std::vector<std::string> &_services) const
 {
-  bool ready;
-  {
-    std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
-    ready = this->dataPtr->initialized;
-  }
-
-  if (!ready)
-  {
-    std::unique_lock<std::recursive_mutex> lk(this->dataPtr->mutex);
-    this->dataPtr->initializedCv.wait(
-        lk, [this]{return this->dataPtr->initialized;});
-  }
-
-  {
-    std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
-    this->dataPtr->infoSrv.TopicList(_services);
-  }
+  std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+  this->dataPtr->infoSrv.TopicList(_services);
 }
 
 //////////////////////////////////////////////////
@@ -1207,17 +1189,18 @@ bool Discovery::RegisterNetIface(const std::string &_ip)
 }
 
 /////////////////////////////////////////////////
-void DiscoveryPrivate::WaitForInit()
+void Discovery::WaitForInit()
 {
   bool ready;
   {
-    std::lock_guard<std::recursive_mutex> lock(this->mutex);
-    ready = this->initialized;
+    std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
+    ready = this->dataPtr->initialized;
   }
 
   if (!ready)
   {
-    std::unique_lock<std::recursive_mutex> lk(this->mutex);
-    this->initializedCv.wait(lk, [this]{return this->initialized;});
+    std::unique_lock<std::recursive_mutex> lk(this->dataPtr->mutex);
+    this->dataPtr->initializedCv.wait(
+       lk, [this]{return this->dataPtr->initialized;});
   }
 }
