@@ -600,6 +600,9 @@ namespace ignition
       /// \param[out] _topics List of advertised topics.
       public: void ServiceList(std::vector<std::string> &_services) const;
 
+      /// \brief Wait until the discovery has been initialized.
+      public: void WaitForInit() const;
+
       /// \brief Get the partition name used by this node.
       /// \return The partition name.
       private: const std::string &Partition() const;

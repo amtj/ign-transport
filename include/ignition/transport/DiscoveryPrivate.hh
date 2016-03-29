@@ -51,10 +51,6 @@ namespace ignition
       /// \brief Destructor.
       public: virtual ~DiscoveryPrivate() = default;
 
-      /// \brief Check if ready/initialized. If not, then wait on the
-      /// initializedCv condition variable.
-      public: void WaitForInit();
-
       /// \brief Default activity interval value (ms.).
       /// \sa ActivityInterval.
       /// \sa SetActivityInterval.

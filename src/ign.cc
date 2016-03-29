@@ -36,6 +36,8 @@ extern "C" IGNITION_VISIBLE void cmdTopicList()
 {
   Node node;
 
+  node.WaitForInit();
+
   std::vector<std::string> topics;
   node.TopicList(topics);
 
@@ -53,6 +55,8 @@ extern "C" IGNITION_VISIBLE void cmdTopicInfo(const char *_topic)
   }
 
   Node node;
+
+  node.WaitForInit();
 
   // Get the publishers on the requested topic
   std::vector<MessagePublisher> publishers;
@@ -84,6 +88,8 @@ extern "C" IGNITION_VISIBLE void cmdTopicInfo(const char *_topic)
 extern "C" IGNITION_VISIBLE void cmdServiceList()
 {
   Node node;
+
+  node.WaitForInit();
 
   std::vector<std::string> services;
   node.ServiceList(services);

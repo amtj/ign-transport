@@ -437,6 +437,12 @@ void Node::ServiceList(std::vector<std::string> &_services) const
 }
 
 //////////////////////////////////////////////////
+void Node::WaitForInit() const
+{
+  this->dataPtr->shared->discovery->WaitForInit();
+}
+
+//////////////////////////////////////////////////
 NodeShared *Node::Shared() const
 {
   return this->dataPtr->shared;
@@ -496,12 +502,9 @@ bool Node::TopicInfo(const std::string &_topic,
     return false;
   }
 
-  std::cout << "Pub size[" << pubs.size() << "]\n";
-
   // Copy the publishers.
   for (MsgAddresses_M::iterator iter = pubs.begin(); iter != pubs.end(); ++iter)
   {
-    std::cout << "Iter size[" << iter->second.size() << "]\n";
     for (std::vector<MessagePublisher>::iterator pubIter = iter->second.begin();
          pubIter != iter->second.end(); ++pubIter)
     {
