@@ -225,7 +225,7 @@ size_t Publisher::MsgLength() const
 //////////////////////////////////////////////////
 bool Publisher::operator==(const Publisher &_pub) const
 {
-  return this->topic == _pub.topic && this->addr == _pub.topic &&
+  return this->topic == _pub.topic && this->addr == _pub.addr &&
     this->pUuid == _pub.pUuid && this->nUuid == _pub.nUuid &&
     this->scope == _pub.scope;
 }

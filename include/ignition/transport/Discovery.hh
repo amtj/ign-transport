@@ -298,7 +298,7 @@ namespace ignition
 
       /// \brief Check if ready/initialized. If not, then wait on the
       /// initializedCv condition variable.
-      public: void WaitForInit();
+      public: void WaitForInit() const;
 
       /// \brief Check the validity of the topic information. Each topic update
       /// has its own timestamp. This method iterates over the list of topics
