@@ -29,8 +29,8 @@
 #include "ignition/transport/NodeOptions.hh"
 #include "ignition/transport/TopicUtils.hh"
 #include "ignition/transport/test_config.h"
-#include "msgs/int.pb.h"
-#include "msgs/vector3d.pb.h"
+#include "msgs/ign_int.pb.h"
+#include "msgs/ign_vector3d.pb.h"
 
 using namespace ignition;
 
@@ -64,7 +64,7 @@ void reset()
 
 //////////////////////////////////////////////////
 /// \brief Function called each time a topic update is received.
-void cb(const transport::msgs::Int &_msg)
+void cb(const transport::msgs::IgnInt &_msg)
 {
   EXPECT_EQ(_msg.data(), data);
   cbExecuted = true;
@@ -73,7 +73,7 @@ void cb(const transport::msgs::Int &_msg)
 
 //////////////////////////////////////////////////
 /// \brief Function called each time a topic update is received.
-void cb2(const transport::msgs::Int &_msg)
+void cb2(const transport::msgs::IgnInt &_msg)
 {
   EXPECT_EQ(_msg.data(), data);
   cb2Executed = true;
@@ -81,8 +81,8 @@ void cb2(const transport::msgs::Int &_msg)
 
 //////////////////////////////////////////////////
 /// \brief Provide a service call.
-void srvEcho(const transport::msgs::Int &_req,
-  transport::msgs::Int &_rep, bool &_result)
+void srvEcho(const transport::msgs::IgnInt &_req,
+  transport::msgs::IgnInt &_rep, bool &_result)
 {
   srvExecuted = true;
 
@@ -93,7 +93,7 @@ void srvEcho(const transport::msgs::Int &_req,
 
 //////////////////////////////////////////////////
 /// \brief Service call response callback.
-void response(const transport::msgs::Int &_rep, const bool _result)
+void response(const transport::msgs::IgnInt &_rep, const bool _result)
 {
   EXPECT_EQ(_rep.data(), data);
   EXPECT_TRUE(_result);
@@ -104,14 +104,15 @@ void response(const transport::msgs::Int &_rep, const bool _result)
 
 //////////////////////////////////////////////////
 /// \brief Service call response callback.
-void wrongResponse(const transport::msgs::Vector3d &/*_rep*/, bool /*_result*/)
+void wrongResponse(const transport::msgs::IgnVector3d &/*_rep*/,
+  bool /*_result*/)
 {
   wrongResponseExecuted = true;
 }
 
 //////////////////////////////////////////////////
 /// \brief Callback for receiving Vector3d data.
-void cbVector(const transport::msgs::Vector3d &/*_msg*/)
+void cbVector(const transport::msgs::IgnVector3d &/*_msg*/)
 {
   cbVectorExecuted = true;
 }
@@ -134,8 +135,8 @@ class MyTestClass
   }
 
   // Member function used as a callback for responding to a service call.
-  public: void Echo(const transport::msgs::Int &_req,
-    transport::msgs::Int &_rep, bool &_result)
+  public: void Echo(const transport::msgs::IgnInt &_req,
+    transport::msgs::IgnInt &_rep, bool &_result)
   {
     EXPECT_EQ(_req.data(), data);
     _rep.set_data(_req.data());
@@ -144,15 +145,15 @@ class MyTestClass
   }
 
   /// \brief Member function used as a callback for responding to a service call
-  public: void WrongEcho(const transport::msgs::Vector3d &/*_req*/,
-    transport::msgs::Int &/*_rep*/, bool &_result)
+  public: void WrongEcho(const transport::msgs::IgnVector3d &/*_req*/,
+    transport::msgs::IgnInt &/*_rep*/, bool &_result)
   {
     _result = true;
     this->wrongCallbackSrvExecuted = true;
   }
 
   /// \brief Member function called each time a topic update is received.
-  public: void Cb(const transport::msgs::Int &_msg)
+  public: void Cb(const transport::msgs::IgnInt &_msg)
   {
     EXPECT_EQ(_msg.data(), data);
     this->callbackExecuted = true;
@@ -161,22 +162,23 @@ class MyTestClass
   /// \brief Advertise a topic and publish a message.
   public: void SendSomeData()
   {
-    transport::msgs::Int msg;
+    transport::msgs::IgnInt msg;
     msg.set_data(data);
 
     // Advertise an illegal topic.
-    EXPECT_FALSE(this->node.Advertise<transport::msgs::Int>("invalid topic"));
+    EXPECT_FALSE(
+      this->node.Advertise<transport::msgs::IgnInt>("invalid topic"));
 
-    EXPECT_TRUE(this->node.Advertise<transport::msgs::Int>(topic));
+    EXPECT_TRUE(this->node.Advertise<transport::msgs::IgnInt>(topic));
     EXPECT_TRUE(this->node.Publish(topic, msg));
   }
 
   public: void TestServiceCall()
   {
-    transport::msgs::Int req;
-    transport::msgs::Int rep;
-    transport::msgs::Vector3d wrongReq;
-    transport::msgs::Vector3d wrongRep;
+    transport::msgs::IgnInt req;
+    transport::msgs::IgnInt rep;
+    transport::msgs::IgnVector3d wrongReq;
+    transport::msgs::IgnVector3d wrongRep;
     int timeout = 500;
     bool result;
 
@@ -249,11 +251,11 @@ void CreatePubSubTwoThreads(
   transport::AdvertiseOptions opts;
   opts.SetScope(_sc);
 
-  transport::msgs::Int msg;
+  transport::msgs::IgnInt msg;
   msg.set_data(data);
 
   transport::Node node;
-  EXPECT_TRUE(node.Advertise<transport::msgs::Int>(topic, opts));
+  EXPECT_TRUE(node.Advertise<transport::msgs::IgnInt>(topic, opts));
 
   // Subscribe to a topic in a different thread and wait until the callback is
   // received.
@@ -278,7 +280,7 @@ TEST(NodeTest, PubWithoutAdvertise)
 {
   reset();
 
-  transport::msgs::Int msg;
+  transport::msgs::IgnInt msg;
   msg.set_data(data);
 
   // Check that an invalid namespace is ignored. The callbacks are expecting an
@@ -299,13 +301,15 @@ TEST(NodeTest, PubWithoutAdvertise)
   // Publish some data on topic without advertising it first.
   EXPECT_FALSE(node1.Publish(topic, msg));
 
-  EXPECT_TRUE(node1.Advertise<transport::msgs::Int>(topic));
+  transport::AdvertiseOptions opts;
+  opts.SetTextMode(false);
+  EXPECT_TRUE(node1.Advertise<transport::msgs::IgnInt>(topic, opts));
 
   auto advertisedTopics = node1.AdvertisedTopics();
   ASSERT_EQ(advertisedTopics.size(), 1u);
   EXPECT_EQ(advertisedTopics.at(0), topic);
 
-  EXPECT_TRUE(node2.Advertise<transport::msgs::Int>(topic));
+  EXPECT_TRUE(node2.Advertise<transport::msgs::IgnInt>(topic, opts));
   advertisedTopics = node2.AdvertisedTopics();
   ASSERT_EQ(advertisedTopics.size(), 1u);
   EXPECT_EQ(advertisedTopics.at(0), topic);
@@ -336,15 +340,15 @@ TEST(NodeTest, PubSubSameThread)
 {
   reset();
 
-  transport::msgs::Int msg;
+  transport::msgs::IgnInt msg;
   msg.set_data(data);
 
   transport::Node node;
 
   // Advertise an illegal topic.
-  EXPECT_FALSE(node.Advertise<transport::msgs::Int>("invalid topic"));
+  EXPECT_FALSE(node.Advertise<transport::msgs::IgnInt>("invalid topic"));
 
-  EXPECT_TRUE(node.Advertise<transport::msgs::Int>(topic));
+  EXPECT_TRUE(node.Advertise<transport::msgs::IgnInt>(topic));
 
   // Subscribe to an illegal topic.
   EXPECT_FALSE(node.Subscribe("invalid topic", cb));
@@ -397,16 +401,16 @@ TEST(NodeTest, PubSubSameThread)
 /// \brief Subscribe to a topic using a lambda function.
 TEST(NodeTest, PubSubSameThreadLamda)
 {
-  transport::msgs::Int msg;
+  transport::msgs::IgnInt msg;
   msg.set_data(data);
 
   transport::Node node;
 
-  EXPECT_TRUE(node.Advertise<transport::msgs::Int>(topic));
+  EXPECT_TRUE(node.Advertise<transport::msgs::IgnInt>(topic));
 
   bool executed = false;
-  std::function<void(const transport::msgs::Int&)> subCb =
-    [&executed](const transport::msgs::Int &_msg)
+  std::function<void(const transport::msgs::IgnInt&)> subCb =
+    [&executed](const transport::msgs::IgnInt &_msg)
     {
       EXPECT_EQ(_msg.data(), data);
       executed = true;
@@ -439,13 +443,13 @@ TEST(NodeTest, PubSubOneThreadTwoSubs)
 {
   reset();
 
-  transport::msgs::Int msg;
+  transport::msgs::IgnInt msg;
   msg.set_data(data);
 
   transport::Node node1;
   transport::Node node2;
 
-  EXPECT_TRUE(node1.Advertise<transport::msgs::Int>(topic));
+  EXPECT_TRUE(node1.Advertise<transport::msgs::IgnInt>(topic));
 
   // Subscribe to topic in node1.
   EXPECT_TRUE(node1.Subscribe(topic, cb));
@@ -559,8 +563,8 @@ TEST(NodeTest, ScopeAll)
 /// \brief Check that the types advertised and published match.
 TEST(NodeTest, TypeMismatch)
 {
-  transport::msgs::Int rightMsg;
-  transport::msgs::Vector3d wrongMsg;
+  transport::msgs::IgnInt rightMsg;
+  transport::msgs::IgnVector3d wrongMsg;
   rightMsg.set_data(1);
   wrongMsg.set_x(1);
   wrongMsg.set_y(2);
@@ -568,7 +572,7 @@ TEST(NodeTest, TypeMismatch)
 
   transport::Node node;
 
-  EXPECT_TRUE(node.Advertise<transport::msgs::Int>(topic));
+  EXPECT_TRUE(node.Advertise<transport::msgs::IgnInt>(topic));
 
   EXPECT_FALSE(node.Publish(topic, wrongMsg));
   EXPECT_TRUE(node.Publish(topic, rightMsg));
@@ -581,7 +585,7 @@ TEST(NodeTest, ServiceCallAsync)
   srvExecuted = false;
   responseExecuted = false;
   counter = 0;
-  transport::msgs::Int req;
+  transport::msgs::IgnInt req;
   req.set_data(data);
 
   transport::Node node;
@@ -642,9 +646,9 @@ TEST(NodeTest, ServiceCallAsync)
 /// \brief Make an asynchronous service call using lambdas.
 TEST(NodeTest, ServiceCallAsyncLambda)
 {
-  std::function<void(const transport::msgs::Int &, transport::msgs::Int &,
-    bool &)> advCb = [](const transport::msgs::Int &_req,
-      transport::msgs::Int &_rep, bool &_result)
+  std::function<void(const transport::msgs::IgnInt &, transport::msgs::IgnInt &,
+    bool &)> advCb = [](const transport::msgs::IgnInt &_req,
+      transport::msgs::IgnInt &_rep, bool &_result)
       {
         EXPECT_EQ(_req.data(), data);
         _rep.set_data(_req.data());
@@ -652,22 +656,22 @@ TEST(NodeTest, ServiceCallAsyncLambda)
       };
 
   transport::Node node;
-  EXPECT_TRUE((node.Advertise<transport::msgs::Int, transport::msgs::Int>(topic,
-    advCb)));
+  EXPECT_TRUE((node.Advertise<transport::msgs::IgnInt,
+    transport::msgs::IgnInt>(topic, advCb)));
 
   bool executed = false;
-  std::function<void(const transport::msgs::Int &, const bool)> reqCb =
-    [&executed](const transport::msgs::Int &_rep, const bool &_result)
+  std::function<void(const transport::msgs::IgnInt &, const bool)> reqCb =
+    [&executed](const transport::msgs::IgnInt &_rep, const bool &_result)
       {
         EXPECT_EQ(_rep.data(), data);
         EXPECT_TRUE(_result);
         executed = true;
       };
 
-  transport::msgs::Int req;
+  transport::msgs::IgnInt req;
   req.set_data(data);
 
-  EXPECT_TRUE((node.Request<transport::msgs::Int, transport::msgs::Int>(
+  EXPECT_TRUE((node.Request<transport::msgs::IgnInt, transport::msgs::IgnInt>(
     topic, req, reqCb)));
 
   EXPECT_TRUE(executed);
@@ -680,7 +684,7 @@ TEST(NodeTest, MultipleServiceCallAsync)
   srvExecuted = false;
   responseExecuted = false;
   counter = 0;
-  transport::msgs::Int req;
+  transport::msgs::IgnInt req;
   req.set_data(data);
 
   transport::Node node;
@@ -737,8 +741,8 @@ TEST(NodeTest, MultipleServiceCallAsync)
 /// \brief A thread can create a node, and send and receive messages.
 TEST(NodeTest, ServiceCallSync)
 {
-  transport::msgs::Int req;
-  transport::msgs::Int rep;
+  transport::msgs::IgnInt req;
+  transport::msgs::IgnInt rep;
   bool result;
   unsigned int timeout = 1000;
 
@@ -761,8 +765,8 @@ TEST(NodeTest, ServiceCallSync)
 /// \brief A thread can create a node, and send and receive messages.
 TEST(NodeTest, ServiceCallSyncTimeout)
 {
-  transport::msgs::Int req;
-  transport::msgs::Int rep;
+  transport::msgs::IgnInt req;
+  transport::msgs::IgnInt rep;
   bool result;
   int64_t timeout = 1000;
 
@@ -793,11 +797,11 @@ TEST(NodeTest, ServiceCallSyncTimeout)
 /// the method Interrupted().
 void createInfinitePublisher()
 {
-  transport::msgs::Int msg;
+  transport::msgs::IgnInt msg;
   msg.set_data(data);
   transport::Node node;
 
-  EXPECT_TRUE(node.Advertise<transport::msgs::Int>(topic));
+  EXPECT_TRUE(node.Advertise<transport::msgs::IgnInt>(topic));
 
   auto i = 0;
   bool exitLoop = false;
@@ -887,16 +891,16 @@ TEST(NodeTest, PubSubWrongTypesOnPublish)
 {
   reset();
 
-  transport::msgs::Int msg;
+  transport::msgs::IgnInt msg;
   msg.set_data(data);
-  transport::msgs::Vector3d msgV;
+  transport::msgs::IgnVector3d msgV;
   msgV.set_x(1);
   msgV.set_y(2);
   msgV.set_z(3);
 
   transport::Node node;
 
-  EXPECT_TRUE(node.Advertise<transport::msgs::Int>(topic));
+  EXPECT_TRUE(node.Advertise<transport::msgs::IgnInt>(topic));
 
   EXPECT_TRUE(node.Subscribe(topic, cb));
 
@@ -930,14 +934,14 @@ TEST(NodeTest, PubSubWrongTypesOnSubscription)
 {
   reset();
 
-  transport::msgs::Vector3d msgV;
+  transport::msgs::IgnVector3d msgV;
   msgV.set_x(1);
   msgV.set_y(2);
   msgV.set_z(3);
 
   transport::Node node;
 
-  EXPECT_TRUE(node.Advertise<transport::msgs::Vector3d>(topic));
+  EXPECT_TRUE(node.Advertise<transport::msgs::IgnVector3d>(topic));
 
   EXPECT_TRUE(node.Subscribe(topic, cb));
 
@@ -961,13 +965,13 @@ TEST(NodeTest, PubSubWrongTypesTwoSubscribers)
 {
   reset();
 
-  transport::msgs::Int msg;
+  transport::msgs::IgnInt msg;
   msg.set_data(data);
 
   transport::Node node1;
   transport::Node node2;
 
-  EXPECT_TRUE(node1.Advertise<transport::msgs::Int>(topic));
+  EXPECT_TRUE(node1.Advertise<transport::msgs::IgnInt>(topic));
 
   // Good subscriber.
   EXPECT_TRUE(node1.Subscribe(topic, cb));
@@ -996,8 +1000,8 @@ TEST(NodeTest, PubSubWrongTypesTwoSubscribers)
 /// that the service call does not succeed.
 TEST(NodeTest, SrvRequestWrongReq)
 {
-  transport::msgs::Vector3d wrongReq;
-  transport::msgs::Int rep;
+  transport::msgs::IgnVector3d wrongReq;
+  transport::msgs::IgnInt rep;
   bool result;
   unsigned int timeout = 1000;
 
@@ -1027,8 +1031,8 @@ TEST(NodeTest, SrvRequestWrongReq)
 /// verify that the service call does not succeed.
 TEST(NodeTest, SrvRequestWrongRep)
 {
-  transport::msgs::Int req;
-  transport::msgs::Vector3d wrongRep;
+  transport::msgs::IgnInt req;
+  transport::msgs::IgnVector3d wrongRep;
   bool result;
   unsigned int timeout = 1000;
 
@@ -1056,9 +1060,9 @@ TEST(NodeTest, SrvRequestWrongRep)
 /// of the requesters receives the response.
 TEST(NodeTest, SrvTwoRequestsOneWrong)
 {
-  transport::msgs::Int req;
-  transport::msgs::Int goodRep;
-  transport::msgs::Vector3d badRep;
+  transport::msgs::IgnInt req;
+  transport::msgs::IgnInt goodRep;
+  transport::msgs::IgnVector3d badRep;
   bool result;
   unsigned int timeout = 1000;
 
@@ -1089,8 +1093,8 @@ TEST(NodeTest, TopicList)
   transport::Node node1;
   transport::Node node2;
 
-  node1.Advertise<transport::msgs::Int>("topic1");
-  node2.Advertise<transport::msgs::Int>("topic2");
+  node1.Advertise<transport::msgs::IgnInt>("topic1");
+  node2.Advertise<transport::msgs::IgnInt>("topic2");
 
   node1.TopicList(topics);
   EXPECT_EQ(topics.size(), 2u);

@@ -46,6 +46,11 @@
 #include "ignition/transport/TopicUtils.hh"
 #include "ignition/transport/TransportTypes.hh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#include "msgs/ign_string.pb.h"
+#pragma GCC diagnostic pop
+
 namespace ignition
 {
   namespace transport
@@ -99,6 +104,18 @@ namespace ignition
                     << "Did you forget to start the discovery service?"
                     << std::endl;
           return false;
+        }
+
+        // Add the topic to the list of advertised topics (if it was not before)
+        this->TopicsAdvertised().insert(fullyQualifiedTopic);
+
+        // If text mode is enabled, advertise an extra topic with the suffix
+        // '_TEXT'.
+        if (_options.TextMode())
+        {
+          AdvertiseOptions opts;
+          opts.SetTextMode(false);
+          return this->Advertise<msgs::IgnString>(_topic + "_TEXT", opts);
         }
 
         return true;

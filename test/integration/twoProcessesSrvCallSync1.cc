@@ -20,9 +20,9 @@
 #include <string>
 
 #include "ignition/transport/Node.hh"
-#include "gtest/gtest.h"
 #include "ignition/transport/test_config.h"
-#include "msgs/int.pb.h"
+#include "gtest/gtest.h"
+#include "msgs/ign_int.pb.h"
 
 using namespace ignition;
 
@@ -45,8 +45,8 @@ TEST(twoProcSrvCallSync1, SrvTwoProcs)
     partition.c_str());
 
   int64_t timeout = 500;
-  transport::msgs::Int req;
-  transport::msgs::Int rep;
+  transport::msgs::IgnInt req;
+  transport::msgs::IgnInt rep;
   bool result;
 
   req.set_data(data);

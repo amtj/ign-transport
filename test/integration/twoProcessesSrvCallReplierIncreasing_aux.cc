@@ -20,9 +20,9 @@
 #include <string>
 
 #include "ignition/transport/Node.hh"
-#include "msgs/int.pb.h"
-#include "gtest/gtest.h"
 #include "ignition/transport/test_config.h"
+#include "msgs/ign_int.pb.h"
+#include "gtest/gtest.h"
 
 using namespace ignition;
 
@@ -31,7 +31,7 @@ int Forever = INT_MAX;
 
 //////////////////////////////////////////////////
 /// \brief Provide a service.
-void srvEcho(const transport::msgs::Int &_req, transport::msgs::Int &_rep,
+void srvEcho(const transport::msgs::IgnInt &_req, transport::msgs::IgnInt &_rep,
   bool &_result)
 {
   _rep.set_data(_req.data());
