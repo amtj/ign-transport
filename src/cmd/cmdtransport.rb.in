@@ -39,7 +39,8 @@ COMMANDS = {  'topic' =>
                        "  ign topic [options]\n\n"\
                        "Options:\n\n"\
                        "  -l [ --list ]              List all topics.\n" +
-                       "  -i [ --info ]              Get info about a topic.\n"+
+                       "  -i [ --info ] arg          Get info about a topic." +
+                       " Where 'arg' is a topic name.\n"+
                        COMMON_OPTIONS,
               'service' =>
                        "Print information about services.\n\n"\
