@@ -437,12 +437,6 @@ void Node::ServiceList(std::vector<std::string> &_services) const
 }
 
 //////////////////////////////////////////////////
-void Node::WaitForInit() const
-{
-  this->dataPtr->shared->discovery->WaitForInit();
-}
-
-//////////////////////////////////////////////////
 NodeShared *Node::Shared() const
 {
   return this->dataPtr->shared;
@@ -482,6 +476,8 @@ NodeOptions &Node::Options() const
 bool Node::TopicInfo(const std::string &_topic,
                      std::vector<MessagePublisher> &_publishers) const
 {
+  this->dataPtr->shared->discovery->WaitForInit();
+
   std::lock_guard<std::recursive_mutex> lk(this->dataPtr->shared->mutex);
 
   // Construct a topic name with the partition and namespace
@@ -491,8 +487,6 @@ bool Node::TopicInfo(const std::string &_topic,
   {
     return false;
   }
-
-  // this->dataPtr->shared->discovery->DiscoverMsg(fullyQualifiedTopic);
 
   // Get all the publishers on the given topics
   MsgAddresses_M pubs;
@@ -509,8 +503,8 @@ bool Node::TopicInfo(const std::string &_topic,
          pubIter != iter->second.end(); ++pubIter)
     {
       // Add the publisher if it doesn't already exist.
-      //if (std::find(_publishers.begin(), _publishers.end(), *pubIter) ==
-      //    _publishers.end())
+      if (std::find(_publishers.begin(), _publishers.end(), *pubIter) ==
+          _publishers.end())
       {
         _publishers.push_back(*pubIter);
       }

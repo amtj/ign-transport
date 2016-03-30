@@ -1128,6 +1128,7 @@ void Discovery::PrintCurrentState() const
 //////////////////////////////////////////////////
 void Discovery::TopicList(std::vector<std::string> &_topics) const
 {
+  this->WaitForInit();
   std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
   this->dataPtr->infoMsg.TopicList(_topics);
 }
@@ -1135,6 +1136,7 @@ void Discovery::TopicList(std::vector<std::string> &_topics) const
 //////////////////////////////////////////////////
 void Discovery::ServiceList(std::vector<std::string> &_services) const
 {
+  this->WaitForInit();
   std::lock_guard<std::recursive_mutex> lock(this->dataPtr->mutex);
   this->dataPtr->infoSrv.TopicList(_services);
 }
@@ -1189,7 +1191,7 @@ bool Discovery::RegisterNetIface(const std::string &_ip)
 }
 
 /////////////////////////////////////////////////
-void Discovery::WaitForInit()
+void Discovery::WaitForInit() const
 {
   bool ready;
   {

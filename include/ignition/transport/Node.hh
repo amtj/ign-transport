@@ -31,7 +31,6 @@
 #include <map>
 #include <memory>
 #include <mutex>
-#include <set>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -599,9 +598,6 @@ namespace ignition
       /// value of 1000ms, sets the maximum blocking time period.
       /// \param[out] _topics List of advertised topics.
       public: void ServiceList(std::vector<std::string> &_services) const;
-
-      /// \brief Wait until the discovery has been initialized.
-      public: void WaitForInit() const;
 
       /// \brief Get the partition name used by this node.
       /// \return The partition name.
