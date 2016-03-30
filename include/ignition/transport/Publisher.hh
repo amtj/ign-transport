@@ -118,7 +118,7 @@ namespace ignition
       public: size_t MsgLength() const;
 
       /// \brief Equality operator. This function checks if the given
-      /// publisher as identical Topic, Addr, PUuid, NUuid, and Scope
+      /// publisher has identical Topic, Addr, PUuid, NUuid, and Scope
       /// strings to this object.
       /// \param[in] _pub The publisher to compare against.
       /// \return True if this object matches the provided object.
@@ -327,7 +327,7 @@ namespace ignition
       }
 
       /// \brief Equality operator. This function checks if the given
-      /// service as identical Topic, Addr, PUuid, NUuid, Scope,
+      /// service has identical Topic, Addr, PUuid, NUuid, Scope,
       /// SocketId, ReqTypeName, RepTypeName strings to this object.
       /// \param[in] _srv The service publisher to compare against.
       /// \return True if this object matches the provided object.

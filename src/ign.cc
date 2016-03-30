@@ -74,7 +74,7 @@ extern "C" IGNITION_VISIBLE void cmdTopicInfo(const char *_topic)
   }
   else
   {
-    std::cout << "No publishers on topic[" << _topic << "]\n";
+    std::cout << "No publishers on topic [" << _topic << "]\n";
   }
 
   // TODO: Add subscribers lists
