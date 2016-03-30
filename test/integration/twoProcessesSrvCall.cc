@@ -19,11 +19,11 @@
 #include <string>
 
 #include "ignition/transport/Node.hh"
+#include "ignition/transport/test_config.h"
 #include "ignition/transport/TopicUtils.hh"
 #include "gtest/gtest.h"
-#include "ignition/transport/test_config.h"
-#include "msgs/int.pb.h"
-#include "msgs/vector3d.pb.h"
+#include "msgs/ign_int.pb.h"
+#include "msgs/ign_vector3d.pb.h"
 
 using namespace ignition;
 
@@ -47,7 +47,7 @@ void reset()
 
 //////////////////////////////////////////////////
 /// \brief Service call response callback.
-void response(const transport::msgs::Int &_rep, const bool _result)
+void response(const transport::msgs::IgnInt &_rep, const bool _result)
 {
   EXPECT_EQ(_rep.data(), data);
   EXPECT_TRUE(_result);
@@ -58,7 +58,8 @@ void response(const transport::msgs::Int &_rep, const bool _result)
 
 //////////////////////////////////////////////////
 /// \brief Service call response callback.
-void wrongResponse(const transport::msgs::Vector3d &/*_rep*/, bool /*_result*/)
+void wrongResponse(const transport::msgs::IgnVector3d &/*_rep*/,
+  bool /*_result*/)
 {
   wrongResponseExecuted = true;
 }
@@ -77,7 +78,7 @@ TEST(twoProcSrvCall, SrvTwoProcs)
 
   responseExecuted = false;
   counter = 0;
-  transport::msgs::Int req;
+  transport::msgs::IgnInt req;
   req.set_data(data);
 
   transport::Node node;
@@ -120,8 +121,8 @@ TEST(twoProcSrvCall, SrvTwoProcs)
 /// that the service call does not succeed.
 TEST(twoProcSrvCall, SrvRequestWrongReq)
 {
-  transport::msgs::Vector3d wrongReq;
-  transport::msgs::Int rep;
+  transport::msgs::IgnVector3d wrongReq;
+  transport::msgs::IgnInt rep;
   bool result;
   unsigned int timeout = 1000;
 
@@ -160,8 +161,8 @@ TEST(twoProcSrvCall, SrvRequestWrongReq)
 /// verify that the service call does not succeed.
 TEST(twoProcSrvCall, SrvRequestWrongRep)
 {
-  transport::msgs::Int req;
-  transport::msgs::Vector3d wrongRep;
+  transport::msgs::IgnInt req;
+  transport::msgs::IgnVector3d wrongRep;
   bool result;
   unsigned int timeout = 1000;
 
@@ -199,9 +200,9 @@ TEST(twoProcSrvCall, SrvRequestWrongRep)
 /// of the requesters receives the response.
 TEST(twoProcSrvCall, SrvTwoRequestsOneWrong)
 {
-  transport::msgs::Int req;
-  transport::msgs::Int goodRep;
-  transport::msgs::Vector3d badRep;
+  transport::msgs::IgnInt req;
+  transport::msgs::IgnInt goodRep;
+  transport::msgs::IgnVector3d badRep;
   bool result;
   unsigned int timeout = 2000;
 

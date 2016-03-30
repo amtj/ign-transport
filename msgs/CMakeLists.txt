@@ -1,6 +1,7 @@
 PROTOBUF_GENERATE_CPP(PROTO_SRC PROTO_HEADER
-  int.proto
-  vector3d.proto
+  ign_int.proto
+  ign_string.proto
+  ign_vector3d.proto
 )
 
 # Variables needed to propagate through modules
@@ -12,3 +13,6 @@ set(PROTO_SRC ${PROTO_SRC} PARENT_SCOPE)
 set(PROTO_HEADER ${PROTO_HEADER} PARENT_SCOPE)
 
 add_custom_target(protobuf_compilation DEPENDS ${PROTO_SRC})
+
+ign_install_includes("${IGN_PROJECT_NAME}${PROJECT_MAJOR_VERSION}/ignition/${IGN_PROJECT_NAME}/msgs"
+                     ${headers})

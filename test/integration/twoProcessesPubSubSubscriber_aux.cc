@@ -22,9 +22,9 @@
 #endif
 
 #include "ignition/transport/Node.hh"
-#include "msgs/vector3d.pb.h"
-#include "gtest/gtest.h"
 #include "ignition/transport/test_config.h"
+#include "msgs/ign_vector3d.pb.h"
+#include "gtest/gtest.h"
 
 using namespace ignition;
 
@@ -35,7 +35,7 @@ std::string data = "bar";
 
 //////////////////////////////////////////////////
 /// \brief Function is called everytime a topic update is received.
-void cb(const transport::msgs::Vector3d &_msg)
+void cb(const transport::msgs::IgnVector3d &_msg)
 {
   EXPECT_DOUBLE_EQ(_msg.x(), 1.0);
   EXPECT_DOUBLE_EQ(_msg.y(), 2.0);
@@ -45,7 +45,7 @@ void cb(const transport::msgs::Vector3d &_msg)
 
 //////////////////////////////////////////////////
 /// \brief Function is called everytime a topic update is received.
-void cb2(const transport::msgs::Vector3d &_msg)
+void cb2(const transport::msgs::IgnVector3d &_msg)
 {
   EXPECT_DOUBLE_EQ(_msg.x(), 1.0);
   EXPECT_DOUBLE_EQ(_msg.y(), 2.0);

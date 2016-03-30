@@ -16,13 +16,16 @@
 */
 
 #include <chrono>
+#include <cstdio>
 #include <iostream>
+#include <thread>
 #include <vector>
 
 #include "ignition/transport/config.hh"
 #include "ignition/transport/ign.hh"
 #include "ignition/transport/Helpers.hh"
 #include "ignition/transport/Node.hh"
+#include "msgs/ign_string.pb.h"
 
 #ifdef _MSC_VER
 # pragma warning(disable: 4503)
@@ -30,6 +33,13 @@
 
 using namespace ignition;
 using namespace transport;
+
+//////////////////////////////////////////////////
+/// \brief Function called each time a topic update is received.
+void cb(const msgs::IgnString &_msg)
+{
+  std::cout << _msg.data() << std::endl << std::endl;
+}
 
 //////////////////////////////////////////////////
 extern "C" IGNITION_VISIBLE void cmdTopicList()
@@ -41,6 +51,27 @@ extern "C" IGNITION_VISIBLE void cmdTopicList()
 
   for (auto const &topic : topics)
     std::cout << topic << std::endl;
+}
+
+//////////////////////////////////////////////////
+extern "C" IGNITION_VISIBLE void cmdTopicEcho(const char *_topic,
+  const double _duration)
+{
+  Node node;
+
+  std::string topic(_topic);
+  if (!node.Subscribe(topic + "_TEXT", cb))
+  {
+    std::cerr << "CmdTopicEcho(): Error in Subscribe() to topic ["
+              << topic + "_TEXT]" << std::endl;
+    return;
+  }
+
+  if (_duration < 0)
+    getchar();
+  else
+    std::this_thread::sleep_for(std::chrono::milliseconds(
+      static_cast<int64_t>(_duration * 1000)));
 }
 
 //////////////////////////////////////////////////
