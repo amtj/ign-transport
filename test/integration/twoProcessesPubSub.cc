@@ -224,8 +224,13 @@ TEST(twoProcPubSub, TopicInfo)
   std::vector<transport::MessagePublisher> publishers;
 
   auto start1 = std::chrono::steady_clock::now();
-  EXPECT_TRUE(node.TopicInfo("/foo", publishers));
+  EXPECT_FALSE(node.TopicInfo("@", publishers));
+  EXPECT_EQ(publishers.size(), 0);
 
+  EXPECT_FALSE(node.TopicInfo("/bogus", publishers));
+  EXPECT_EQ(publishers.size(), 0);
+
+  EXPECT_TRUE(node.TopicInfo("/foo", publishers));
   EXPECT_EQ(publishers.size(), 1);
   EXPECT_EQ(publishers.front().MsgTypeName(),
             "ignition.transport.msgs.Vector3d");
