@@ -18,9 +18,15 @@
 #include <chrono>
 #include <iostream>
 #include <vector>
+
 #include "ignition/transport/config.hh"
 #include "ignition/transport/ign.hh"
+#include "ignition/transport/Helpers.hh"
 #include "ignition/transport/Node.hh"
+
+#ifdef _MSC_VER
+# pragma warning(disable: 4503)
+#endif
 
 using namespace ignition;
 using namespace transport;
@@ -29,9 +35,6 @@ using namespace transport;
 extern "C" IGNITION_VISIBLE void cmdTopicList()
 {
   Node node;
-
-  // Give the node some time to receive topic updates.
-  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 
   std::vector<std::string> topics;
   node.TopicList(topics);
@@ -44,9 +47,6 @@ extern "C" IGNITION_VISIBLE void cmdTopicList()
 extern "C" IGNITION_VISIBLE void cmdServiceList()
 {
   Node node;
-
-  // Give the node some time to receive topic updates.
-  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 
   std::vector<std::string> services;
   node.ServiceList(services);
@@ -62,7 +62,7 @@ extern "C" IGNITION_VISIBLE char *ignitionVersion()
   int minorVersion = IGNITION_TRANSPORT_MINOR_VERSION;
   int patchVersion = IGNITION_TRANSPORT_PATCH_VERSION;
 
-  return strdup((std::to_string(majorVersion) + "." +
-                 std::to_string(minorVersion) + "." +
-                 std::to_string(patchVersion)).c_str());
+  return ign_strdup((std::to_string(majorVersion) + "." +
+                     std::to_string(minorVersion) + "." +
+                     std::to_string(patchVersion)).c_str());
 }
