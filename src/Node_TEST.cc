@@ -18,9 +18,11 @@
 #include <chrono>
 #include <csignal>
 #include <cstdlib>
+#include <functional>
 #include <memory>
 #include <string>
 #include <thread>
+
 #include "gtest/gtest.h"
 #include "ignition/transport/AdvertiseOptions.hh"
 #include "ignition/transport/Node.hh"
@@ -392,6 +394,36 @@ TEST(NodeTest, PubSubSameThread)
 }
 
 //////////////////////////////////////////////////
+/// \brief Subscribe to a topic using a lambda function.
+TEST(NodeTest, PubSubSameThreadLamda)
+{
+  transport::msgs::Int msg;
+  msg.set_data(data);
+
+  transport::Node node;
+
+  EXPECT_TRUE(node.Advertise<transport::msgs::Int>(topic));
+
+  bool executed = false;
+  std::function<void(const transport::msgs::Int&)> subCb =
+    [&executed](const transport::msgs::Int &_msg)
+    {
+      EXPECT_EQ(_msg.data(), data);
+      executed = true;
+    };
+
+  EXPECT_TRUE(node.Subscribe(topic, subCb));
+
+  // Give some time to the subscribers.
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+  // Publish a first message.
+  EXPECT_TRUE(node.Publish(topic, msg));
+
+  EXPECT_TRUE(executed);
+}
+
+//////////////////////////////////////////////////
 /// \brief Use two threads using their own transport nodes. One thread
 /// will publish a message, whereas the other thread is subscribed to the topic.
 TEST(NodeTest, PubSubTwoThreadsSameTopic)
@@ -508,7 +540,7 @@ TEST(NodeTest, ScopeProcess)
 }
 
 //////////////////////////////////////////////////
-/// \brief Check that two nodes in diffetent threads are able to communicate
+/// \brief Check that two nodes in different threads are able to communicate
 /// advertising a topic with "Host" scope.
 TEST(NodeTest, ScopeHost)
 {
@@ -516,7 +548,7 @@ TEST(NodeTest, ScopeHost)
 }
 
 //////////////////////////////////////////////////
-/// \brief Check that two nodes in diffetent threads are able to communicate
+/// \brief Check that two nodes in different threads are able to communicate
 /// advertising a topic with "All" scope.
 TEST(NodeTest, ScopeAll)
 {
@@ -604,6 +636,41 @@ TEST(NodeTest, ServiceCallAsync)
   EXPECT_TRUE(node.UnadvertiseSrv(topic));
 
   ASSERT_TRUE(node.AdvertisedServices().empty());
+}
+
+//////////////////////////////////////////////////
+/// \brief Make an asynchronous service call using lambdas.
+TEST(NodeTest, ServiceCallAsyncLambda)
+{
+  std::function<void(const transport::msgs::Int &, transport::msgs::Int &,
+    bool &)> advCb = [](const transport::msgs::Int &_req,
+      transport::msgs::Int &_rep, bool &_result)
+      {
+        EXPECT_EQ(_req.data(), data);
+        _rep.set_data(_req.data());
+        _result = true;
+      };
+
+  transport::Node node;
+  EXPECT_TRUE((node.Advertise<transport::msgs::Int, transport::msgs::Int>(topic,
+    advCb)));
+
+  bool executed = false;
+  std::function<void(const transport::msgs::Int &, const bool)> reqCb =
+    [&executed](const transport::msgs::Int &_rep, const bool &_result)
+      {
+        EXPECT_EQ(_rep.data(), data);
+        EXPECT_TRUE(_result);
+        executed = true;
+      };
+
+  transport::msgs::Int req;
+  req.set_data(data);
+
+  EXPECT_TRUE((node.Request<transport::msgs::Int, transport::msgs::Int>(
+    topic, req, reqCb)));
+
+  EXPECT_TRUE(executed);
 }
 
 //////////////////////////////////////////////////
@@ -697,21 +764,23 @@ TEST(NodeTest, ServiceCallSyncTimeout)
   transport::msgs::Int req;
   transport::msgs::Int rep;
   bool result;
-  unsigned int timeout = 1000;
+  int64_t timeout = 1000;
 
   req.set_data(data);
 
   transport::Node node;
 
   auto t1 = std::chrono::system_clock::now();
-  bool executed = node.Request(topic, req, timeout, rep, result);
+  bool executed = node.Request(topic, req, static_cast<unsigned int>(timeout),
+      rep, result);
   auto t2 = std::chrono::system_clock::now();
 
-  double elapsed =
+  int64_t elapsed =
     std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
 
   // Check if the elapsed time was close to the timeout.
-  EXPECT_NEAR(elapsed, timeout, 10.0);
+  auto diff = std::max(elapsed, timeout) - std::min(elapsed, timeout);
+  EXPECT_LE(diff, 10);
 
   // Check that the service call response was not executed.
   EXPECT_FALSE(executed);
@@ -731,7 +800,8 @@ void createInfinitePublisher()
   EXPECT_TRUE(node.Advertise<transport::msgs::Int>(topic));
 
   auto i = 0;
-  while (true)
+  bool exitLoop = false;
+  while (!exitLoop)
   {
     EXPECT_TRUE(node.Publish(topic, msg));
     ++i;
@@ -740,7 +810,7 @@ void createInfinitePublisher()
     {
       std::lock_guard<std::mutex> lock(exitMutex);
       if (terminatePub)
-        break;
+        exitLoop = true;
     }
   }
 
@@ -1008,6 +1078,62 @@ TEST(NodeTest, SrvTwoRequestsOneWrong)
   EXPECT_TRUE(node.Request(topic, req, response));
   std::this_thread::sleep_for(std::chrono::milliseconds(300));
   EXPECT_TRUE(responseExecuted);
+}
+
+//////////////////////////////////////////////////
+/// \brief This test creates two nodes and advertises some topics. The test
+/// verifies that TopicList() returns the list of all the topics advertised.
+TEST(NodeTest, TopicList)
+{
+  std::vector<std::string> topics;
+  transport::Node node1;
+  transport::Node node2;
+
+  node1.Advertise<transport::msgs::Int>("topic1");
+  node2.Advertise<transport::msgs::Int>("topic2");
+
+  node1.TopicList(topics);
+  EXPECT_EQ(topics.size(), 2u);
+  topics.clear();
+
+  auto start = std::chrono::steady_clock::now();
+  node1.TopicList(topics);
+  auto end = std::chrono::steady_clock::now();
+  EXPECT_EQ(topics.size(), 2u);
+
+  // The first TopicList() call might block if the discovery is still
+  // initializing (it may happen if we run this test alone).
+  // However, the second call should never block.
+  auto elapsed = end - start;
+  EXPECT_LT(std::chrono::duration_cast<std::chrono::milliseconds>
+      (elapsed).count(), 2);
+}
+
+//////////////////////////////////////////////////
+/// \brief This test creates two nodes and advertises some services. The test
+/// verifies that ServiceList() returns the list of all the services advertised.
+TEST(NodeTest, ServiceList)
+{
+  std::vector<std::string> services;
+  transport::Node node;
+
+  node.Advertise(topic, srvEcho);
+
+  node.ServiceList(services);
+  EXPECT_EQ(services.size(), 1u);
+  services.clear();
+
+  auto start = std::chrono::steady_clock::now();
+  node.ServiceList(services);
+  auto end = std::chrono::steady_clock::now();
+  EXPECT_EQ(services.size(), 1u);
+
+  // The first TopicList() call might block if the discovery is still
+  // initializing (it may happen if we run this test alone).
+  //  However, the second call should never block.
+  auto elapsed = end - start;
+  EXPECT_LT(std::chrono::duration_cast<std::chrono::milliseconds>
+      (elapsed).count(), 2);
 }
 
 

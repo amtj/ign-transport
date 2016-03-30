@@ -16,6 +16,7 @@
 */
 
 #include <string>
+
 #include "ignition/transport/TopicUtils.hh"
 
 using namespace ignition;
@@ -48,17 +49,23 @@ bool TopicUtils::IsValidNamespace(const std::string &_ns)
 }
 
 //////////////////////////////////////////////////
+bool TopicUtils::IsValidPartition(const std::string &_partition)
+{
+  return IsValidNamespace(_partition);
+}
+
+//////////////////////////////////////////////////
 bool TopicUtils::IsValidTopic(const std::string &_topic)
 {
   return IsValidNamespace(_topic) && !_topic.empty();
 }
 
 //////////////////////////////////////////////////
-bool TopicUtils::GetFullyQualifiedName(const std::string &_partition,
+bool TopicUtils::FullyQualifiedName(const std::string &_partition,
   const std::string &_ns, const std::string &_topic, std::string &_name)
 {
   // Sanity check, first things first.
-  if (!IsValidNamespace(_partition) || !IsValidNamespace(_ns) ||
+  if (!IsValidPartition(_partition) || !IsValidNamespace(_ns) ||
       !IsValidTopic(_topic))
   {
     return false;
