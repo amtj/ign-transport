@@ -231,6 +231,12 @@ bool Publisher::operator==(const Publisher &_pub) const
 }
 
 //////////////////////////////////////////////////
+bool Publisher::operator!=(const Publisher &_pub) const
+{
+  return !(*this == _pub);
+}
+
+//////////////////////////////////////////////////
 MessagePublisher::MessagePublisher(const std::string &_topic,
   const std::string &_addr, const std::string &_ctrl, const std::string &_pUuid,
   const std::string &_nUuid, const Scope_t &_scope,
@@ -355,6 +361,12 @@ bool MessagePublisher::operator==(const MessagePublisher &_pub) const
   return Publisher::operator==(_pub) &&
     this->ctrl == _pub.ctrl &&
     this->msgTypeName == _pub.msgTypeName;
+}
+
+//////////////////////////////////////////////////
+bool MessagePublisher::operator!=(const MessagePublisher &_pub) const
+{
+  return !(*this == _pub);
 }
 
 //////////////////////////////////////////////////
@@ -516,4 +528,10 @@ bool ServicePublisher::operator==(const ServicePublisher &_srv) const
     this->socketId == _srv.socketId &&
     this->reqTypeName == _srv.reqTypeName &&
     this->repTypeName == _srv.repTypeName;
+}
+
+//////////////////////////////////////////////////
+bool ServicePublisher::operator!=(const ServicePublisher &_srv) const
+{
+  return !(*this == _srv);
 }
