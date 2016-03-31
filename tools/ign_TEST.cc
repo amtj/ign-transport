@@ -95,7 +95,7 @@ TEST(ignTest, TopicInfo)
   // Check the 'ign topic -i' command.
   std::string ign = std::string(IGN_PATH) + "/ign";
   std::string output = custom_exec_str(ign + " topic -i /foo");
-  ASSERT_GT(output.size(), 50);
+  ASSERT_GT(output.size(), 50u);
   EXPECT_EQ(output.substr(16, 32), "ignition.transport.msgs.Vector3d");
 
   // Wait for the child process to return.
@@ -162,7 +162,7 @@ TEST(ignTest, TopicInfoSameProc)
   std::string ign = std::string(IGN_PATH) + "/ign";
   std::string output = custom_exec_str(ign + " topic -i /foo");
 
-  ASSERT_GT(output.size(), 50);
+  ASSERT_GT(output.size(), 50u);
   EXPECT_EQ(output.substr(16, 32), "ignition.transport.msgs.Vector3d");
 }
 
