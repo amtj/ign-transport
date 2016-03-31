@@ -90,7 +90,7 @@ class Cmd
     # Check that there is at least one command and there is a plugin that knows
     # how to handle it.
     if ARGV.empty? || !COMMANDS.key?(ARGV[0]) ||
-       options.empty? || options.empty?
+       options.empty?
       puts usage
       exit(-1)
     end
