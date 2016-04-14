@@ -126,10 +126,7 @@ std::string transport::determineHost()
   // First, did the user set IGN_IP?
   std::string ignIp;
   if (env("IGN_IP", ignIp) && !ignIp.empty())
-  {
-    std::cout << "IGN_IP was set: " << ignIp << std::endl;
     return ignIp;
-  }
 
   // Second, try the preferred local and public IP address.
   std::string hostIP;
