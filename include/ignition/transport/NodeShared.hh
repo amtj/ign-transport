@@ -134,8 +134,11 @@ namespace ignition
       /// \brief IP address of this host.
       public: std::string hostAddr;
 
-      /// \brief Discovery service.
-      public: std::unique_ptr<Discovery> discovery;
+      /// \brief Discovery service (messages).
+      public: std::unique_ptr<MsgDiscovery> msgDiscovery;
+
+      /// \brief Discovery service (services).
+      public: std::unique_ptr<SrvDiscovery> srvDiscovery;
 
       /// \brief 0MQ context.
       public: zmq::context_t *context;
@@ -204,6 +207,12 @@ namespace ignition
 
       /// \brief Pending service call requests.
       public: HandlerStorage<IReqHandler> requests;
+
+      /// \brief Port used by the message discovery layer.
+      private: const int kMsgDiscPort = 11317;
+
+      /// \brief Port used by the servuce discovery layer.
+      private: const int kSrvDiscPort = 11318;
     };
   }
 }
