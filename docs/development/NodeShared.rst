@@ -7,6 +7,20 @@ two main communication modes: pub/sub messages and service calls. NodeShared
 holds private data for Node class and this class is not supposed to be used
 directly.
 
+API
+===
+
+- **Instance:**
+  NodeShared is a singleton. Instance method gets the NodeShared instance shared
+  between all the nodes. It returns pointer to the current NodeShared instance.
+
+- **Publish:**
+  It is used to publish data. It takes in three arguments:
+  ``_topic`` is topic to be published. ``_data`` is data to published.
+  ``_msgType`` is message type in string format. It returns true when success
+  or false otherwise.
+
+
 Threading model
 ===============
 
