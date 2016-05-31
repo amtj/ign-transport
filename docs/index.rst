@@ -17,6 +17,7 @@ Contents:
 	Using messages <messages/messages>
 	Using services <services/services>
    Environment variables <environment_variables/env_variables>
+  Development <development/development>
 	Contribute <contribute/contribute>
    API <api/api>
 
