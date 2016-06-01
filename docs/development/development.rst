@@ -240,3 +240,55 @@ If the environmental variable ``IGN_IP`` is set, then the protocol will use
 this ip address for sending and receiving messages. If environment variable
 ``IGN_IP`` looks like invalid ip, then ip address ``127.0.0.1`` will be used.
 It will also throw a warning.
+
+==========
+NodeShared
+==========
+
+Node is a class that allows a client to communicate with other peers. There are
+two main communication modes: pub/sub messages and service calls. NodeShared
+holds private data for Node class and this class is not supposed to be used
+directly.
+
+API
+===
+
+- **Instance:**
+  NodeShared is a singleton. Instance method gets the NodeShared instance shared
+  between all the nodes. It returns pointer to the current NodeShared instance.
+
+.. code-block:: cpp
+
+  // NodeShared* NodeShared::Instance();
+  NodeShared *shared = NodeShared::Instance();
+
+- **Publish:**
+  It is used to publish data. It takes in three arguments:
+  ``_topic`` is topic to be published. ``_data`` is data to published.
+  ``_msgType`` is message type in string format. It returns true when success
+  or false otherwise.
+
+.. code-block:: cpp
+
+  bool Publish(const std::string &topic,
+               const std::string &data,
+               const std::string &msgType);
+
+- **Callbacks:**
+  NodeShared has almost same callback mechanism as of Discovery.
+  ``OnNewConnection()`` and ``OnNewDisconnection()`` register callbacks that
+  are executed when new topics from publisher are discovered or when the
+  publisher disconnects. ``OnNewSrvConnection()`` and
+  ``OnNewSrvDisconnection()`` are used when new service call is detected or when
+  a service call is no longer available, respectively.
+
+
+Threading model
+===============
+
+There is only one major thread, ``threadReception``. Reception thread is a
+service thread which is in charge of receiving and handling incoming messages.
+A boolean is used to mark exit of the thread. It is true when the reception
+thread is finishing.
+
+Mutex is used to ensure exclusive access between all threads.
