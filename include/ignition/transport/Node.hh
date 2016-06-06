@@ -634,6 +634,49 @@ namespace ignition
         return true;
       }
 
+      /// \brief Request a new service without waiting for response.
+      /// \param[in] _topic Topic requested.
+      /// \param[in] _req Protobuf message containing the request's parameters.
+      /// \return true when the service call was succesfully requested.
+      public: template<typename T1> bool Request(
+        const std::string &_topic,
+        const T1 &_req)
+        {
+          std::string fullyQualifiedTopic;
+          if (!TopicUtils::FullyQualifiedName(this->Options().Partition(),
+            this->Options().NameSpace(), _topic, fullyQualifiedTopic))
+          {
+            std::cerr << "Topic [" << _topic << "] is not valid." << std::endl;
+            return false;
+          }
+
+          {
+            std::lock_guard<std::recursive_mutex> lk(this->Shared()->mutex);
+
+            // If the responser's address is known, make the request.
+            SrvAddresses_M addresses;
+            if (this->Shared()->srvDiscovery->Publishers(
+              fullyQualifiedTopic, addresses))
+            {
+              this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic,
+                msgs::Empty, msgs::Empty);
+            }
+            else
+            {
+              // Discover the service responser.
+              if (!this->Shared()->srvDiscovery->Discover(fullyQualifiedTopic))
+              {
+                std::cerr << "Node::Request(): Error discovering a service. "
+                          << "Did you forget to start the discovery service?"
+                          << std::endl;
+                return false;
+              }
+            }
+          }
+
+          return true;
+        }
+
       /// \brief Unadvertise a service.
       /// \param[in] _topic Topic name to be unadvertised.
       /// \return true if the service was successfully unadvertised.
