@@ -784,9 +784,14 @@ void NodeShared::SendPendingRemoteReqs(const std::string &_topic,
         memcpy(msg.data(), _reqType.data(), _reqType.size());
         this->requester->send(msg, ZMQ_SNDMORE);
 
-        msg.rebuild(_repType.size());
-        memcpy(msg.data(), _repType.data(), _repType.size());
-        this->requester->send(msg, 0);
+        // \brief This if statement is only for service requests without
+        // \any response where response parameter is "Empty".
+        if (&_repType != Empty)
+        {
+          msg.rebuild(_repType.size());
+          memcpy(msg.data(), _repType.data(), _repType.size());
+          this->requester->send(msg, 0);
+        }
       }
       catch(const zmq::error_t& /*ze*/)
       {
