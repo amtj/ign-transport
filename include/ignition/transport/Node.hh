@@ -143,7 +143,7 @@ namespace ignition
           this->Shared()->pUuid, this->NodeUuid(), _options.Scope(),
           T().GetTypeName());
 
-        if (!this->Shared()->discovery->AdvertiseMsg(publisher))
+        if (!this->Shared()->msgDiscovery->Advertise(publisher))
         {
           std::cerr << "Node::Advertise(): Error advertising a topic. "
                     << "Did you forget to start the discovery service?"
@@ -235,7 +235,7 @@ namespace ignition
         this->TopicsSubscribed().insert(fullyQualifiedTopic);
 
         // Discover the list of nodes that publish on the topic.
-        if (!this->Shared()->discovery->DiscoverMsg(fullyQualifiedTopic))
+        if (!this->Shared()->msgDiscovery->Discover(fullyQualifiedTopic))
         {
           std::cerr << "Node::Subscribe(): Error discovering a topic. "
                     << "Did you forget to start the discovery service?"
@@ -357,7 +357,7 @@ namespace ignition
           this->Shared()->pUuid, this->NodeUuid(), _options.Scope(),
           T1().GetTypeName(), T2().GetTypeName());
 
-        if (!this->Shared()->discovery->AdvertiseSrv(publisher))
+        if (!this->Shared()->srvDiscovery->Advertise(publisher))
         {
           std::cerr << "Node::Advertise(): Error advertising a service. "
                     << "Did you forget to start the discovery service?"
@@ -491,7 +491,7 @@ namespace ignition
 
           // If the responser's address is known, make the request.
           SrvAddresses_M addresses;
-          if (this->Shared()->discovery->SrvPublishers(
+          if (this->Shared()->srvDiscovery->Publishers(
             fullyQualifiedTopic, addresses))
           {
             this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic,
@@ -500,7 +500,7 @@ namespace ignition
           else
           {
             // Discover the service responser.
-            if (!this->Shared()->discovery->DiscoverSrv(fullyQualifiedTopic))
+            if (!this->Shared()->srvDiscovery->Discover(fullyQualifiedTopic))
             {
               std::cerr << "Node::Request(): Error discovering a service. "
                         << "Did you forget to start the discovery service?"
@@ -589,7 +589,7 @@ namespace ignition
 
         // If the responser's address is known, make the request.
         SrvAddresses_M addresses;
-        if (this->Shared()->discovery->SrvPublishers(
+        if (this->Shared()->srvDiscovery->Publishers(
           fullyQualifiedTopic, addresses))
         {
           this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic,
@@ -598,7 +598,7 @@ namespace ignition
         else
         {
           // Discover the service responser.
-          if (!this->Shared()->discovery->DiscoverSrv(fullyQualifiedTopic))
+          if (!this->Shared()->srvDiscovery->Discover(fullyQualifiedTopic))
           {
             std::cerr << "Node::Request(): Error discovering a service. "
                       << "Did you forget to start the discovery service?"
@@ -659,7 +659,7 @@ namespace ignition
       /// discovery is in its initialization phase.
       /// The value of the "heartbeatInterval" constant, with a default
       /// value of 1000ms, sets the maximum blocking time period.
-      /// \param[out] _topics List of advertised topics.
+      /// \param[out] _services List of advertised services.
       public: void ServiceList(std::vector<std::string> &_services) const;
 
       /// \brief Get the information about a service.
