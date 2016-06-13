@@ -34,6 +34,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <ignition/msgs.hh>
 
 #include "ignition/transport/AdvertiseOptions.hh"
 #include "ignition/transport/Helpers.hh"
@@ -489,6 +490,14 @@ namespace ignition
           this->Shared()->requests.AddHandler(
             fullyQualifiedTopic, this->NodeUuid(), reqHandlerPtr);
 
+          // \brief This if statement is only for service requests without
+          // \any response where response parameter is "Empty".
+          if (T2().GetTypeName() = msgs::Empty)
+          {
+            this->Shared()->requests.RemoveHandler(
+              fullyQualifiedTopic, this->NodeUuid(), reqHandlerPtr);
+          }
+
           // If the responser's address is known, make the request.
           SrvAddresses_M addresses;
           if (this->Shared()->srvDiscovery->Publishers(
@@ -638,43 +647,17 @@ namespace ignition
       /// \param[in] _topic Topic requested.
       /// \param[in] _req Protobuf message containing the request's parameters.
       /// \return true when the service call was succesfully requested.
-      public: template<typename T1> bool Request(
-        const std::string &_topic,
-        const T1 &_req)
+      public: template<typename T1> bool Request(const std::string &_topic,
+                                                 const T1 &_req)
         {
-          std::string fullyQualifiedTopic;
-          if (!TopicUtils::FullyQualifiedName(this->Options().Partition(),
-            this->Options().NameSpace(), _topic, fullyQualifiedTopic))
+          // This callback is here for reusing the regular Request() call with
+          // input and output parameters.
+          std::function<void(const ignition::msgs::Empty &, const bool)> f =
+            [](const ignition::msgs::Empty &, const bool)
           {
-            std::cerr << "Topic [" << _topic << "] is not valid." << std::endl;
-            return false;
-          }
+          };
 
-          {
-            std::lock_guard<std::recursive_mutex> lk(this->Shared()->mutex);
-
-            // If the responser's address is known, make the request.
-            SrvAddresses_M addresses;
-            if (this->Shared()->srvDiscovery->Publishers(
-              fullyQualifiedTopic, addresses))
-            {
-              this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic,
-                msgs::Empty, msgs::Empty);
-            }
-            else
-            {
-              // Discover the service responser.
-              if (!this->Shared()->srvDiscovery->Discover(fullyQualifiedTopic))
-              {
-                std::cerr << "Node::Request(): Error discovering a service. "
-                          << "Did you forget to start the discovery service?"
-                          << std::endl;
-                return false;
-              }
-            }
-          }
-
-          return true;
+          return this->Request<T1, ignition::msgs::Empty>(_topic, _req, f);
         }
 
       /// \brief Unadvertise a service.
