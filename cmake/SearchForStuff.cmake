@@ -106,3 +106,15 @@ macro (check_gcc_visibility)
   include (CheckCXXCompilerFlag)
   check_cxx_compiler_flag(-fvisibility=hidden GCC_SUPPORTS_VISIBILITY)
 endmacro()
+
+###################################################
+# Find ign-msgs lib
+find_package(ignition-msgs0 QUIET)
+if (NOT ignition-msgs0_FOUND)
+  message(FATAL_ERROR "Looking for ign-msgs - failed")
+else()
+  message(STATUS "Looking for ign-msgs - passed")
+
+include_directories(${IGNITION-MSGS_INCLUDE_DIRS})
+link_directories(${IGNITION-MSGS_LIBRARY_DIRS})
+endif()
