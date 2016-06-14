@@ -791,10 +791,9 @@ void NodeShared::SendPendingRemoteReqs(const std::string &_topic,
 
         // \brief This if statement is only for service requests without
         // \any response where response parameter is "Empty".
-        if (T2().GetTypeName() == ignition::msgs::Empty().GetTypeName())
+        if (_repType == ignition::msgs::Empty().GetTypeName())
         {
-          this->Shared()->requests.RemoveHandler(
-          _topic, NodeUuid, reqUuid);
+          this->requests.RemoveHandler(_topic, nodeUuid, reqUuid);
         }
       }
       catch(const zmq::error_t& /*ze*/)
