@@ -490,14 +490,6 @@ namespace ignition
           this->Shared()->requests.AddHandler(
             fullyQualifiedTopic, this->NodeUuid(), reqHandlerPtr);
 
-          // \brief This if statement is only for service requests without
-          // \any response where response parameter is "Empty".
-          if (T2().GetTypeName() = msgs::Empty)
-          {
-            this->Shared()->requests.RemoveHandler(
-              fullyQualifiedTopic, this->NodeUuid(), reqHandlerPtr);
-          }
-
           // If the responser's address is known, make the request.
           SrvAddresses_M addresses;
           if (this->Shared()->srvDiscovery->Publishers(
