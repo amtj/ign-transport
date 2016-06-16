@@ -663,8 +663,8 @@ namespace ignition
       /// \param[in] _topic Topic requested.
       /// \param[in] _req Protobuf message containing the request's parameters.
       /// \return true when the service call was succesfully requested.
-      public: template<typename T1> bool Request(const std::string &_topic,
-                                                 const T1 &_req)
+      public: template<typename T> bool Request(const std::string &_topic,
+                                                 const T &_req)
         {
           // This callback is here for reusing the regular Request() call with
           // input and output parameters.
@@ -673,7 +673,7 @@ namespace ignition
           {
           };
 
-          return this->Request<T1, ignition::msgs::Empty>(_topic, _req, f);
+          return this->Request<T, ignition::msgs::Empty>(_topic, _req, f);
         }
 
       /// \brief Unadvertise a service.
