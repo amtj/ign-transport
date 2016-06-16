@@ -417,8 +417,8 @@ namespace ignition
       {
         std::function<void(const T &, ignition::msgs::Empty &, bool &)> f =
           [](const T &_internalReq,
-                      ignition::msgs::Empty &_internalRep,
-                      bool &_internalResult)
+             ignition::msgs::Empty &_internalRep,
+             bool &_internalResult)
         {
         };
 
