@@ -416,7 +416,7 @@ namespace ignition
         const AdvertiseOptions &_options = AdvertiseOptions())
       {
         std::function<void(const T &, ignition::msgs::Empty &, bool &)> f =
-          [_cb](const T &_internalReq,
+          [](const T &_internalReq,
                       ignition::msgs::Empty &_internalRep,
                       bool &_internalResult)
         {
