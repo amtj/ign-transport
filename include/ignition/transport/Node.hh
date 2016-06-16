@@ -410,18 +410,19 @@ namespace ignition
       /// \return true when the topic has been successfully advertised or
       /// false otherwise.
       /// \sa AdvertiseOptions.
-      public: template<typename T1> bool Advertise(
+      public: template<typename T> bool Advertise(
         const std::string &_topic,
-        void(*_cb)(const T1 &_req),
+        void(*_cb)(const T &_req),
         const AdvertiseOptions &_options = AdvertiseOptions())
       {
-        std::function<void(const T1 &, const bool)> f =
-          [_cb](const T1 &_internalReq, const bool)
+        std::function<void(const T &, ignition::msgs::Empty &, bool &)> f =
+          [_cb](const T &_internalReq,
+                      ignition::msgs::Empty &_internalRep,
+                      bool &_internalResult)
         {
-          (*_cb)(_internalReq);
         };
 
-        return this->Advertise<T1>(_topic, f, _options);
+        return this->Advertise<T, ignition::msgs::Empty>(_topic, f, _options);
       }
 
       /// \brief Get the list of services advertised by this node.
