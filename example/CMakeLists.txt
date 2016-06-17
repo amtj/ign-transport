@@ -43,6 +43,12 @@ if (EXISTS "${CMAKE_SOURCE_DIR}/requester_async.cc")
   add_dependencies(requester_async protobuf_compilation)
 endif()
 
+if (EXISTS "${CMAKE_SOURCE_DIR}/SrvProviderOneway.cc")
+  add_executable(SrvProviderOneway SrvProviderOneway.cc ${PROTO_SRC})
+  target_link_libraries(SrvProviderOneway ${IGNITION-TRANSPORT_LIBRARIES})
+  add_dependencies(SrvProviderOneway protobuf_compilation)
+endif()
+
 if (MSVC)
   # Suppress Protobuf message generation warnings.
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4018 /wd4100 /wd4127 /wd4244 /wd4267 /wd4512")
