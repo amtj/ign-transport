@@ -540,6 +540,13 @@ void NodeShared::RecvSrvRequest()
       }
     }
 
+    // \brief This if statement is only for service requests without
+    // \any response where response parameter is "Empty".
+    if (repType == ignition::msgs::Empty().GetTypeName())
+    {
+      return;
+    }
+
     // Send the reply.
     try
     {
