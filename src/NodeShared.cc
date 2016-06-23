@@ -540,8 +540,8 @@ void NodeShared::RecvSrvRequest()
       }
     }
 
-    // \brief This if statement is only for service requests without
-    // \any response where response parameter is "Empty".
+    // If 'reptype' is msgs::Empty", this is a oneway request
+    // and we don't send response
     if (repType == ignition::msgs::Empty().GetTypeName())
     {
       return;
