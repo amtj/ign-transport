@@ -43,7 +43,7 @@
   using raw_type = void;
 #endif
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   #pragma warning(push, 0)
 #endif
 #include <zmq.hpp>
@@ -84,7 +84,7 @@ namespace ignition
     /// network. The discovery clients can register callbacks to detect when
     /// new topics are discovered or topics are no longer available.
     template<typename Pub>
-    class IGNITION_VISIBLE Discovery
+    class IGNITION_TRANSPORT_VISIBLE Discovery
     {
       /// \brief Constructor.
       /// \param[in] _pUuid This discovery instance will run inside a
@@ -95,6 +95,7 @@ namespace ignition
                         const int _port,
                         const bool _verbose = false)
         : port(_port),
+          hostAddr(determineHost()),
           pUuid(_pUuid),
           silenceInterval(kDefSilenceInterval),
           activityInterval(kDefActivityInterval),
@@ -107,9 +108,6 @@ namespace ignition
           exit(false),
           enabled(false)
       {
-        // Get this host IP address.
-        this->hostAddr = determineHost();
-
         std::string ignIp;
         if (env("IGN_IP", ignIp) && !ignIp.empty())
           this->hostInterfaces = {ignIp};
@@ -237,7 +235,6 @@ namespace ignition
         // all our advertised topics.
         this->SendMsg(ByeType,
           Publisher("", "", this->pUuid, "", Scope_t::ALL));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         // Close sockets.
         for (const auto &sock : this->sockets)
@@ -555,15 +552,10 @@ namespace ignition
       /// initializedCv condition variable.
       public: void WaitForInit() const
       {
-        bool ready;
-        {
-          std::lock_guard<std::mutex> lock(this->mutex);
-          ready = this->initialized;
-        }
+        std::unique_lock<std::mutex> lk(this->mutex);
 
-        if (!ready)
+        if (!this->initialized)
         {
-          std::unique_lock<std::mutex> lk(this->mutex);
           this->initializedCv.wait(lk, [this]{return this->initialized;});
         }
       }
@@ -1013,14 +1005,14 @@ namespace ignition
 
       /// \brief Get the list of sockets used for discovery.
       /// \return The list of sockets.
-      private: const std::vector<int>& Sockets() const
+      private: const std::vector<int> &Sockets() const
       {
         return this->sockets;
       }
 
       /// \brief Get the data structure used for multicast communication.
       /// \return The data structure containing the multicast information.
-      private: const sockaddr_in* MulticastAddr() const
+      private: const sockaddr_in *MulticastAddr() const
       {
         return &this->mcastAddr;
       }

@@ -6,8 +6,8 @@ project (ignition-${IGN_PROJECT_NAME})
 string (TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
 string (TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPER)
 
-set (PROJECT_MAJOR_VERSION 1)
-set (PROJECT_MINOR_VERSION 2)
+set (PROJECT_MAJOR_VERSION 2)
+set (PROJECT_MINOR_VERSION 0)
 set (PROJECT_PATCH_VERSION 0)
 
 set (PROJECT_VERSION ${PROJECT_MAJOR_VERSION}.${PROJECT_MINOR_VERSION})
@@ -50,6 +50,15 @@ if (PACKAGE_SOURCE_ONLY)
   message(WARNING "Configuration was done in PACKAGE_SOURCE_ONLY mode."
   "You can build a tarball (make package_source), but nothing else.")
   return()
+endif()
+
+# Fix path format (if variables are specified).
+# On windows this will replace backslashes with forward slashes
+if (ZeroMQ_ROOT_DIR)
+  file(TO_CMAKE_PATH ${ZeroMQ_ROOT_DIR} ZeroMQ_ROOT_DIR)
+endif()
+if (CPPZMQ_HEADER_PATH)
+  file(TO_CMAKE_PATH ${CPPZMQ_HEADER_PATH} CPPZMQ_HEADER_PATH)
 endif()
 
 #################################################
@@ -279,7 +288,6 @@ else (build_errors)
 
   if (BUILD_IGNITION)
     set(TEST_TYPE "UNIT")
-    add_subdirectory(msgs)
     add_subdirectory(src)
     add_subdirectory(include)
     add_subdirectory(conf)
@@ -333,6 +341,17 @@ else (build_errors)
     message(STATUS "Loading packager build hooks from cmake/packager-hooks")
     add_subdirectory(cmake/packager-hooks)
   endif()
+
+  if (WIN32)
+    file(GLOB ZMQ_DLLS "${ZeroMQ_ROOT_DIR}/bin/*.dll")
+    file(COPY ${ZMQ_DLLS} DESTINATION ${PROJECT_BINARY_DIR}/src)
+    file(COPY ${ZMQ_DLLS} DESTINATION ${PROJECT_BINARY_DIR}/test/integration)
+
+    file(GLOB IGN-MSGS_DLLS "${IGNITION-MSGS_ROOT_DIR}/lib/*.dll")
+    file(COPY ${IGN-MSGS_DLLS} DESTINATION ${PROJECT_BINARY_DIR}/src)
+    file(COPY ${IGN-MSGS_DLLS} DESTINATION ${PROJECT_BINARY_DIR}/test/integration)
+  endif()
+
 
   message(STATUS "Configuration successful. Type make to compile
   ${PROJECT_NAME_LOWER}")
