@@ -21,21 +21,26 @@
 #include "msgs/stringmsg.pb.h"
 
 //////////////////////////////////////////////////
+void srvEcho(const example::msgs::StringMsg &_req)
+{
+}
+
+//////////////////////////////////////////////////
 int main(int argc, char **argv)
 {
   // Create a transport node.
   ignition::transport::Node node;
 
   // Prepare the input parameters.
-  std::string topic = "/foo";
+  std::string service = "/foo";
 
   // Advertise a topic.
-  bool executed = node.Advertise<example::msgs::StringMsg>(topic);
-
-  if (executed)
+  if (!node.Advertise(service, srvEcho))
   {
-    std::cout << "Advertise succeeded" << std::endl;
+    std::cerr << "Error advertising service [" << service << "]" << std::endl;
+    return -1;
   }
-  else
-    std::cerr << "Advertise failed" << std::endl;
+
+  // Zzzzzz.
+  ignition::transport::waitForShutdown();
 }
