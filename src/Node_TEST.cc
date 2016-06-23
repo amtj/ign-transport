@@ -215,15 +215,6 @@ class MyTestClass
 
     this->Reset();
 
-    // Advertise and request a valid service without waiting for response.
-    EXPECT_TRUE(this->node.Advertise(g_topic, &MyTestClass::Echo, this));
-    EXPECT_TRUE(this->node.Request(g_topic, req));
-    ASSERT_TRUE(result);
-    EXPECT_EQ(rep.data(), data);
-    EXPECT_TRUE(this->callbackSrvExecuted);
-
-    this->Reset();
-
     // Request a valid service using a member function callback.
     this->node.Request(g_topic, req, &MyTestClass::EchoResponse, this);
     EXPECT_TRUE(this->responseExecuted);
