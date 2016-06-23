@@ -837,7 +837,7 @@ TEST(NodeTest, MultipleServiceCallAsync)
 //////////////////////////////////////////////////
 /// \brief Request multiple service calls at the same time (service without
 /// output).
-TEST(NodeTest, MultipleServiceWithoutInputCallAsync)
+TEST(NodeTest, MultipleServiceWithoutOutputCallAsync)
 {
   srvExecuted = false;
   counter = 0;
@@ -917,7 +917,7 @@ TEST(NodeTest, ServiceCallSync)
 //////////////////////////////////////////////////
 /// \brief A thread can create a node, and send and receive messages (service
 /// without output).
-TEST(NodeTest, ServiceWithoutInputCallSync)
+TEST(NodeTest, ServiceWithoutOutputCallSync)
 {
   ignition::msgs::Int32 req;
 
