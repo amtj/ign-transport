@@ -91,6 +91,34 @@ void ignition::transport::waitForShutdown()
 }
 
 //////////////////////////////////////////////////
+Node::PublisherId::PublisherId()
+{
+}
+
+//////////////////////////////////////////////////
+Node::PublisherId::PublisherId(const std::string &_topic) : topic(_topic)
+{
+}
+
+//////////////////////////////////////////////////
+Node::PublisherId::operator bool()
+{
+  return this->Valid();
+}
+
+//////////////////////////////////////////////////
+bool Node::PublisherId::Valid() const
+{
+  return !this->topic.empty();
+}
+
+//////////////////////////////////////////////////
+std::string Node::PublisherId::Topic() const
+{
+  return this->topic;
+}
+
+//////////////////////////////////////////////////
 Node::Node(const NodeOptions &_options)
   : dataPtr(new NodePrivate())
 {
@@ -162,7 +190,7 @@ std::vector<std::string> Node::AdvertisedTopics() const
 //////////////////////////////////////////////////
 bool Node::Unadvertise(const std::string &_topic)
 {
-  std::string fullyQualifiedTopic = _topic;
+  std::string fullyQualifiedTopic;
   if (!TopicUtils::FullyQualifiedName(this->Options().Partition(),
     this->Options().NameSpace(), _topic, fullyQualifiedTopic))
   {
@@ -176,13 +204,19 @@ bool Node::Unadvertise(const std::string &_topic)
   this->dataPtr->topicsAdvertised.erase(fullyQualifiedTopic);
 
   // Notify the discovery service to unregister and unadvertise my topic.
-  if (!this->dataPtr->shared->discovery->UnadvertiseMsg(fullyQualifiedTopic,
+  if (!this->dataPtr->shared->msgDiscovery->Unadvertise(fullyQualifiedTopic,
     this->dataPtr->nUuid))
   {
     return false;
   }
 
   return true;
+}
+
+//////////////////////////////////////////////////
+bool Node::Publish(const PublisherId &_id, const ProtoMsg &_msg)
+{
+  return _id.Valid() ? this->PublishHelper(_id.Topic(), _msg) : false;
 }
 
 //////////////////////////////////////////////////
@@ -196,6 +230,12 @@ bool Node::Publish(const std::string &_topic, const ProtoMsg &_msg)
     return false;
   }
 
+  return this->PublishHelper(fullyQualifiedTopic, _msg);
+}
+
+//////////////////////////////////////////////////
+bool Node::PublishHelper(const std::string &_topic, const ProtoMsg &_msg)
+{
   std::map<std::string, ISubscriptionHandler_M> handlers;
   bool hasLocalSubscribers;
   bool hasRemoteSubscribers;
@@ -203,25 +243,25 @@ bool Node::Publish(const std::string &_topic, const ProtoMsg &_msg)
     std::lock_guard<std::recursive_mutex> lk(this->dataPtr->shared->mutex);
 
     // Topic not advertised before.
-    if (this->dataPtr->topicsAdvertised.find(fullyQualifiedTopic) ==
+    if (this->dataPtr->topicsAdvertised.find(_topic) ==
         this->dataPtr->topicsAdvertised.end())
     {
       return false;
     }
+
     hasLocalSubscribers =
-      this->dataPtr->shared->localSubscriptions.Handlers(fullyQualifiedTopic,
-        handlers);
+      this->dataPtr->shared->localSubscriptions.Handlers(_topic, handlers);
     hasRemoteSubscribers =
-      this->dataPtr->shared->remoteSubscribers.HasTopic(fullyQualifiedTopic);
+      this->dataPtr->shared->remoteSubscribers.HasTopic(_topic);
   }
 
   // Check that the msg type matches the type previously advertised
   // for topic '_topic'.
   MessagePublisher pub;
-  auto &info = this->dataPtr->shared->discovery->DiscoveryMsgInfo();
+  auto &info = this->dataPtr->shared->msgDiscovery->Info();
   std::string procUuid = this->dataPtr->shared->pUuid;
   std::string nodeUuid = this->dataPtr->nUuid;
-  if (!info.Publisher(fullyQualifiedTopic, procUuid, nodeUuid, pub))
+  if (!info.Publisher(_topic, procUuid, nodeUuid, pub))
   {
     std::cerr << "Node::Publish() I cannot find the msgType registered for "
               << "topic [" << _topic << "]" << std::endl;
@@ -271,7 +311,7 @@ bool Node::Publish(const std::string &_topic, const ProtoMsg &_msg)
       return false;
     }
 
-    this->dataPtr->shared->Publish(fullyQualifiedTopic, data,
+    this->dataPtr->shared->Publish(_topic, data,
       _msg.GetTypeName());
   }
   // Debug output.
@@ -328,7 +368,7 @@ bool Node::Unsubscribe(const std::string &_topic)
 
   // Notify to the publishers that I am no longer interested in the topic.
   MsgAddresses_M addresses;
-  if (!this->dataPtr->shared->discovery->MsgPublishers(fullyQualifiedTopic,
+  if (!this->dataPtr->shared->msgDiscovery->Publishers(fullyQualifiedTopic,
     addresses))
   {
     return false;
@@ -412,7 +452,7 @@ bool Node::UnadvertiseSrv(const std::string &_topic)
     fullyQualifiedTopic, this->dataPtr->nUuid);
 
   // Notify the discovery service to unregister and unadvertise my services.
-  if (!this->dataPtr->shared->discovery->UnadvertiseSrv(fullyQualifiedTopic,
+  if (!this->dataPtr->shared->srvDiscovery->Unadvertise(fullyQualifiedTopic,
     this->dataPtr->nUuid))
   {
     return false;
@@ -427,7 +467,7 @@ void Node::TopicList(std::vector<std::string> &_topics) const
   std::vector<std::string> allTopics;
   _topics.clear();
 
-  this->dataPtr->shared->discovery->TopicList(allTopics);
+  this->dataPtr->shared->msgDiscovery->TopicList(allTopics);
 
   for (auto &topic : allTopics)
   {
@@ -454,7 +494,7 @@ void Node::ServiceList(std::vector<std::string> &_services) const
   std::vector<std::string> allServices;
   _services.clear();
 
-  this->dataPtr->shared->discovery->ServiceList(allServices);
+  this->dataPtr->shared->srvDiscovery->TopicList(allServices);
 
   for (auto &service : allServices)
   {
@@ -515,7 +555,7 @@ NodeOptions &Node::Options() const
 bool Node::TopicInfo(const std::string &_topic,
                      std::vector<MessagePublisher> &_publishers) const
 {
-  this->dataPtr->shared->discovery->WaitForInit();
+  this->dataPtr->shared->msgDiscovery->WaitForInit();
 
   // Construct a topic name with the partition and namespace
   std::string fullyQualifiedTopic;
@@ -529,7 +569,7 @@ bool Node::TopicInfo(const std::string &_topic,
 
   // Get all the publishers on the given topics
   MsgAddresses_M pubs;
-  if (!this->dataPtr->shared->discovery->MsgPublishers(
+  if (!this->dataPtr->shared->msgDiscovery->Publishers(
         fullyQualifiedTopic, pubs))
   {
     return false;
@@ -559,7 +599,7 @@ bool Node::TopicInfo(const std::string &_topic,
 bool Node::ServiceInfo(const std::string &_service,
                        std::vector<ServicePublisher> &_publishers) const
 {
-  this->dataPtr->shared->discovery->WaitForInit();
+  this->dataPtr->shared->srvDiscovery->WaitForInit();
 
   // Construct a topic name with the partition and namespace
   std::string fullyQualifiedTopic;
@@ -573,7 +613,7 @@ bool Node::ServiceInfo(const std::string &_service,
 
   // Get all the publishers on the given service.
   SrvAddresses_M pubs;
-  if (!this->dataPtr->shared->discovery->SrvPublishers(
+  if (!this->dataPtr->shared->srvDiscovery->Publishers(
         fullyQualifiedTopic, pubs))
   {
     return false;

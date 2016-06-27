@@ -37,25 +37,21 @@ namespace ignition
     static const uint8_t UnadvType      = 3;
     static const uint8_t HeartbeatType  = 4;
     static const uint8_t ByeType        = 5;
-    static const uint8_t AdvSrvType     = 6;
-    static const uint8_t SubSrvType     = 7;
-    static const uint8_t UnadvSrvType   = 8;
-    static const uint8_t NewConnection  = 9;
-    static const uint8_t EndConnection  = 10;
+    static const uint8_t NewConnection  = 6;
+    static const uint8_t EndConnection  = 7;
 
     /// \brief Used for debugging the message type received/send.
     static const std::vector<std::string> MsgTypesStr =
     {
       "UNINITIALIZED", "ADVERTISE", "SUBSCRIBE", "UNADVERTISE", "HEARTBEAT",
-      "BYE", "ADV_SRV", "SUB_SRV", "UNADVERTISE_SRV", "NEW_CONNECTION",
-      "END_CONNECTION"
+      "BYE", "NEW_CONNECTION", "END_CONNECTION"
     };
 
     /// \class Header Packet.hh ignition/transport/Packet.hh
     /// \brief Header included in each discovery message containing the version
     /// of the discovery protocol, the process UUID of the sender node, the type
     // of message (ADV, SUB, ... ) and optional flags.
-    class IGNITION_VISIBLE Header
+    class IGNITION_TRANSPORT_VISIBLE Header
     {
       /// \brief Constructor.
       public: Header() = default;
@@ -64,7 +60,6 @@ namespace ignition
       /// \param[in] _version Version of the discovery protocol.
       /// \param[in] _pUuid Every process has a unique UUID.
       /// \param[in] _type Message type (ADVERTISE, SUBSCRIPTION, ...)
-      /// \param[in] _partition Partition name.
       /// \param[in] _flags Optional flags included in the header.
       public: Header(const uint16_t _version,
                      const std::string &_pUuid,
@@ -160,7 +155,7 @@ namespace ignition
     /// \class SubscriptionMsg Packet.hh ignition/transport/Packet.hh
     /// \brief Subscription packet used in the discovery protocol for requesting
     /// information about a given topic.
-    class IGNITION_VISIBLE SubscriptionMsg
+    class IGNITION_TRANSPORT_VISIBLE SubscriptionMsg
     {
       /// \brief Constructor.
       public: SubscriptionMsg() = default;
@@ -232,7 +227,7 @@ namespace ignition
     /// is used for advertising messages and services. 'T' is the Publisher
     /// type used inside this AdvertiseMessage object.
 
-    template <class T> class IGNITION_VISIBLE AdvertiseMessage
+    template <class T> class IGNITION_TRANSPORT_VISIBLE AdvertiseMessage
     {
       /// \brief Constructor.
       public: AdvertiseMessage() = default;

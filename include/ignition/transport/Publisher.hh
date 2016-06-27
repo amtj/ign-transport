@@ -32,7 +32,7 @@ namespace ignition
     /// ignition/transport/Publisher.hh
     /// \brief This class stores all the information about a publisher.
     /// It stores the topic name that publishes, addresses, UUIDs, scope, etc.
-    class IGNITION_VISIBLE Publisher
+    class IGNITION_TRANSPORT_VISIBLE Publisher
     {
       /// \brief Default constructor.
       public: Publisher() = default;
@@ -129,7 +129,7 @@ namespace ignition
       /// strings to this object.
       /// \param[in] _pub The publisher to compare against.
       /// \return True if this object does not match the provided object.
-      public: bool operator!=(const Publisher &_srv) const;
+      public: bool operator!=(const Publisher &_pub) const;
 
       /// \brief Stream insertion operator.
       /// \param[out] _out The output stream.
@@ -172,7 +172,7 @@ namespace ignition
     /// \class MessagePublisher Publisher.hh
     /// ignition/transport/Publisher.hh
     /// \brief This class stores all the information about a message publisher.
-    class IGNITION_VISIBLE MessagePublisher : public Publisher
+    class IGNITION_TRANSPORT_VISIBLE MessagePublisher : public Publisher
     {
       /// \brief Default constructor.
       public: MessagePublisher() = default;
@@ -261,7 +261,7 @@ namespace ignition
     /// \class ServicePublisher Publisher.hh
     /// ignition/transport/Publisher.hh
     /// \brief This class stores all the information about a service publisher.
-    class IGNITION_VISIBLE ServicePublisher : public Publisher
+    class IGNITION_TRANSPORT_VISIBLE ServicePublisher : public Publisher
     {
       /// \brief Default constructor.
       public: ServicePublisher() = default;
@@ -317,12 +317,12 @@ namespace ignition
       public: std::string RepTypeName() const;
 
       /// \brief Set the name of the request's protobuf message advertised.
-      /// \param[in] The protobuf message type.
+      /// \param[in] _reqTypeName The protobuf message type.
       /// \sa ReqTypeName.
       public: void SetReqTypeName(const std::string &_reqTypeName);
 
       /// \brief Set the name of the response's protobuf message advertised.
-      /// \param[in] The protobuf message type.
+      /// \param[in] _repTypeName The protobuf message type.
       /// \sa RepTypeName.
       public: void SetRepTypeName(const std::string &_repTypeName);
 

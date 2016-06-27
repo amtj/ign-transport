@@ -17,18 +17,18 @@
 
 #include <chrono>
 #include <string>
+#include <ignition/msgs.hh>
 
 #include "ignition/transport/AdvertiseOptions.hh"
 #include "ignition/transport/Node.hh"
 #include "gtest/gtest.h"
-#include "msgs/int.pb.h"
 #include "ignition/transport/test_config.h"
 
 using namespace ignition;
 
-std::string partition;
-std::string topic = "/foo";
-int data = 5;
+static std::string partition;
+static std::string g_topic = "/foo";
+static int data = 5;
 
 //////////////////////////////////////////////////
 /// \brief Two different nodes, each one running in a different process. The
@@ -43,18 +43,18 @@ TEST(ScopedTopicTest, ProcessTest)
   testing::forkHandlerType pi = testing::forkAndRun(subscriber_path.c_str(),
     partition.c_str());
 
-  transport::msgs::Int msg;
+  ignition::msgs::Int32 msg;
   msg.set_data(data);
 
   transport::Node node;
   transport::AdvertiseOptions opts;
   opts.SetScope(transport::Scope_t::PROCESS);
 
-  EXPECT_TRUE(node.Advertise<transport::msgs::Int>(topic, opts));
+  EXPECT_TRUE(node.Advertise<ignition::msgs::Int32>(g_topic, opts));
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  EXPECT_TRUE(node.Publish(topic, msg));
+  EXPECT_TRUE(node.Publish(g_topic, msg));
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  EXPECT_TRUE(node.Publish(topic, msg));
+  EXPECT_TRUE(node.Publish(g_topic, msg));
 
   testing::waitAndCleanupFork(pi);
 }

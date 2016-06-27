@@ -17,19 +17,19 @@
 
 #include <chrono>
 #include <string>
+#include <ignition/msgs.hh>
 
 #include "ignition/transport/Node.hh"
-#include "msgs/int.pb.h"
 #include "gtest/gtest.h"
 #include "ignition/transport/test_config.h"
 
 using namespace ignition;
 
-std::string topic = "/foo";
+static std::string g_topic = "/foo";
 
 //////////////////////////////////////////////////
 /// \brief Provide a service.
-void srvEcho(const transport::msgs::Int &_req, transport::msgs::Int &_rep,
+void srvEcho(const ignition::msgs::Int32 &_req, ignition::msgs::Int32 &_rep,
   bool &_result)
 {
   _rep.set_data(_req.data());
@@ -40,7 +40,7 @@ void srvEcho(const transport::msgs::Int &_req, transport::msgs::Int &_rep,
 void runReplier()
 {
   transport::Node node;
-  EXPECT_TRUE(node.Advertise(topic, srvEcho));
+  EXPECT_TRUE(node.Advertise(g_topic, srvEcho));
   std::this_thread::sleep_for(std::chrono::milliseconds(6000));
 }
 
