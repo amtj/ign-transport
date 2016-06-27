@@ -14,9 +14,8 @@
  * limitations under the License.
  *
 */
-
-#ifndef __IGN_TRANSPORT_NODE_HH_INCLUDED__
-#define __IGN_TRANSPORT_NODE_HH_INCLUDED__
+#ifndef IGN_TRANSPORT_NODE_HH_
+#define IGN_TRANSPORT_NODE_HH_
 
 #ifdef _MSC_VER
 #pragma warning(push, 0)
@@ -55,17 +54,59 @@ namespace ignition
     /// \brief Block the current thread until a SIGINT or SIGTERM is received.
     /// Note that this function registers a signal handler. Do not use this
     /// function if you want to manage yourself SIGINT/SIGTERM.
-    IGNITION_VISIBLE void waitForShutdown();
+    IGNITION_TRANSPORT_VISIBLE void waitForShutdown();
 
     /// \class Node Node.hh ignition/transport/Node.hh
     /// \brief A class that allows a client to communicate with other peers.
     /// There are two main communication modes: pub/sub messages and service
     /// calls.
-    class IGNITION_VISIBLE Node
+    class IGNITION_TRANSPORT_VISIBLE Node
     {
+      /// \brief A class that is used to store information about an
+      /// advertised publisher. An instance of this class is returned
+      /// from Node::Advertise, and should be used in subsequent
+      /// Node::Publish calls.
+      ///
+      /// ## Pseudo code example ##
+      ///
+      ///    auto pubId = myNode.Advertise<MsgType>("topic_name");
+      ///
+      ///    MsgType msg;
+      ///    myNode.Publish(pubId, msg);
+      ///
+      public: class PublisherId
+      {
+        /// \brief Default constructor
+        public: PublisherId();
+
+        /// \brief Constructor
+        /// \param[in] _topic Name of the topic on which messages
+        /// could be published.
+        public: explicit PublisherId(const std::string &_topic);
+
+        /// \brief Allows this class to be evaluated as a boolean.
+        /// \return True if valid
+        /// \sa Valid
+        public: operator bool();
+
+        /// \brief Return true if valid information, such as
+        /// a non-empty topic name, is present.
+        /// \return True if this object can be used in Node::Publish
+        /// calls.
+        public: bool Valid() const;
+
+        /// \brief Return the name of the topic.
+        /// \return Name of the topic that message would be
+        /// published on.
+        public: std::string Topic() const;
+
+        /// \brief Name of the topic
+        private: std::string topic = "";
+      };
+
       /// \brief Constructor.
       /// \param[in] _options Node options.
-      public: Node(const NodeOptions &_options = NodeOptions());
+      public: explicit Node(const NodeOptions &_options = NodeOptions());
 
       /// \brief Destructor.
       public: virtual ~Node();
@@ -73,17 +114,37 @@ namespace ignition
       /// \brief Advertise a new topic.
       /// \param[in] _topic Topic name to be advertised.
       /// \param[in] _options Advertise options.
-      /// \return true if the topic was succesfully advertised.
+      /// \return A PublisherId, which can be used in Node::Publish calls.
+      /// The PublisherId also acts as boolean, where true occurs if the topic
+      /// was succesfully advertised.
       /// \sa AdvertiseOptions.
-      public: template<typename T> bool Advertise(const std::string &_topic,
-                          const AdvertiseOptions &_options = AdvertiseOptions())
+      public: template<typename T> Node::PublisherId Advertise(
+                  const std::string &_topic,
+                  const AdvertiseOptions &_options = AdvertiseOptions())
+      {
+        return this->Advertise(_topic, T().GetTypeName(), _options);
+      }
+
+      /// \brief Advertise a new topic.
+      /// \param[in] _topic Topic name to be advertised.
+      /// \param[in] _msgTypeName Name of the message type that will be
+      /// published on the topic. The message type name can be retrieved
+      /// from a protobuf message using the GetTypeName() function.
+      /// \param[in] _options Advertise options.
+      /// \return A PublisherId, which can be used in Node::Publish calls.
+      /// The PublisherId also acts as boolean, where true occurs if the topic
+      /// was succesfully advertised.
+      /// \sa AdvertiseOptions.
+      public: Node::PublisherId Advertise(const std::string &_topic,
+                  const std::string &_msgTypeName,
+                  const AdvertiseOptions &_options = AdvertiseOptions())
       {
         std::string fullyQualifiedTopic;
         if (!TopicUtils::FullyQualifiedName(this->Options().Partition(),
           this->Options().NameSpace(), _topic, fullyQualifiedTopic))
         {
           std::cerr << "Topic [" << _topic << "] is not valid." << std::endl;
-          return false;
+          return PublisherId();
         }
 
         std::lock_guard<std::recursive_mutex> lk(this->Shared()->mutex);
@@ -96,17 +157,17 @@ namespace ignition
           this->Shared()->myAddress,
           this->Shared()->myControlAddress,
           this->Shared()->pUuid, this->NodeUuid(), _options.Scope(),
-          T().GetTypeName());
+          _msgTypeName);
 
-        if (!this->Shared()->discovery->AdvertiseMsg(publisher))
+        if (!this->Shared()->msgDiscovery->Advertise(publisher))
         {
           std::cerr << "Node::Advertise(): Error advertising a topic. "
                     << "Did you forget to start the discovery service?"
                     << std::endl;
-          return false;
+          return PublisherId();
         }
 
-        return true;
+        return PublisherId(fullyQualifiedTopic);
       }
 
       /// \brief Get the list of topics advertised by this node.
@@ -123,6 +184,14 @@ namespace ignition
       /// \param[in] _msg protobuf message.
       /// \return true when success.
       public: bool Publish(const std::string &_topic,
+                           const ProtoMsg &_msg);
+
+      /// \brief Publish a message.
+      /// \param[in] _id Id of the publisher, which encapsulates the topic
+      /// on which to send the message.
+      /// \param[in] _msg protobuf message.
+      /// \return true when success.
+      public: bool Publish(const PublisherId &_id,
                            const ProtoMsg &_msg);
 
       /// \brief Subscribe to a topic registering a callback.
@@ -182,7 +251,7 @@ namespace ignition
         this->TopicsSubscribed().insert(fullyQualifiedTopic);
 
         // Discover the list of nodes that publish on the topic.
-        if (!this->Shared()->discovery->DiscoverMsg(fullyQualifiedTopic))
+        if (!this->Shared()->msgDiscovery->Discover(fullyQualifiedTopic))
         {
           std::cerr << "Node::Subscribe(): Error discovering a topic. "
                     << "Did you forget to start the discovery service?"
@@ -274,7 +343,7 @@ namespace ignition
         if (!TopicUtils::FullyQualifiedName(this->Options().Partition(),
           this->Options().NameSpace(), _topic, fullyQualifiedTopic))
         {
-          std::cerr << "Topic [" << _topic << "] is not valid." << std::endl;
+          std::cerr << "Service [" << _topic << "] is not valid." << std::endl;
           return false;
         }
 
@@ -304,7 +373,7 @@ namespace ignition
           this->Shared()->pUuid, this->NodeUuid(), _options.Scope(),
           T1().GetTypeName(), T2().GetTypeName());
 
-        if (!this->Shared()->discovery->AdvertiseSrv(publisher))
+        if (!this->Shared()->srvDiscovery->Advertise(publisher))
         {
           std::cerr << "Node::Advertise(): Error advertising a service. "
                     << "Did you forget to start the discovery service?"
@@ -394,7 +463,7 @@ namespace ignition
         if (!TopicUtils::FullyQualifiedName(this->Options().Partition(),
           this->Options().NameSpace(), _topic, fullyQualifiedTopic))
         {
-          std::cerr << "Topic [" << _topic << "] is not valid." << std::endl;
+          std::cerr << "Service [" << _topic << "] is not valid." << std::endl;
           return false;
         }
 
@@ -438,7 +507,7 @@ namespace ignition
 
           // If the responser's address is known, make the request.
           SrvAddresses_M addresses;
-          if (this->Shared()->discovery->SrvPublishers(
+          if (this->Shared()->srvDiscovery->Publishers(
             fullyQualifiedTopic, addresses))
           {
             this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic,
@@ -447,7 +516,7 @@ namespace ignition
           else
           {
             // Discover the service responser.
-            if (!this->Shared()->discovery->DiscoverSrv(fullyQualifiedTopic))
+            if (!this->Shared()->srvDiscovery->Discover(fullyQualifiedTopic))
             {
               std::cerr << "Node::Request(): Error discovering a service. "
                         << "Did you forget to start the discovery service?"
@@ -507,7 +576,7 @@ namespace ignition
         if (!TopicUtils::FullyQualifiedName(this->Options().Partition(),
           this->Options().NameSpace(), _topic, fullyQualifiedTopic))
         {
-          std::cerr << "Topic [" << _topic << "] is not valid." << std::endl;
+          std::cerr << "Service [" << _topic << "] is not valid." << std::endl;
           return false;
         }
 
@@ -536,7 +605,7 @@ namespace ignition
 
         // If the responser's address is known, make the request.
         SrvAddresses_M addresses;
-        if (this->Shared()->discovery->SrvPublishers(
+        if (this->Shared()->srvDiscovery->Publishers(
           fullyQualifiedTopic, addresses))
         {
           this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic,
@@ -545,7 +614,7 @@ namespace ignition
         else
         {
           // Discover the service responser.
-          if (!this->Shared()->discovery->DiscoverSrv(fullyQualifiedTopic))
+          if (!this->Shared()->srvDiscovery->Discover(fullyQualifiedTopic))
           {
             std::cerr << "Node::Request(): Error discovering a service. "
                       << "Did you forget to start the discovery service?"
@@ -606,7 +675,7 @@ namespace ignition
       /// discovery is in its initialization phase.
       /// The value of the "heartbeatInterval" constant, with a default
       /// value of 1000ms, sets the maximum blocking time period.
-      /// \param[out] _topics List of advertised topics.
+      /// \param[out] _services List of advertised services.
       public: void ServiceList(std::vector<std::string> &_services) const;
 
       /// \brief Get the information about a service.
@@ -648,6 +717,14 @@ namespace ignition
       /// \brief Get the reference to the current node options.
       /// \return Reference to the current node options.
       private: NodeOptions &Options() const;
+
+      /// \brief Publish a message helper.
+      /// \sa Publish
+      /// \param[in] _topic Fully qualified topic to be published.
+      /// \param[in] _msg protobuf message.
+      /// \return true when success.
+      private: bool PublishHelper(const std::string &_topic,
+                                  const ProtoMsg &_msg);
 
       /// \internal
       /// \brief Smart pointer to private data.

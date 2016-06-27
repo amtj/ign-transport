@@ -34,7 +34,7 @@ namespace ignition
     /// \class TopicStorage TopicStorage.hh ignition/transport/TopicStorage.hh
     /// \brief Store address information about topics and provide convenient
     /// methods for adding new topics, removing them, etc.
-    template<typename T> class IGNITION_VISIBLE TopicStorage
+    template<typename T> class IGNITION_TRANSPORT_VISIBLE TopicStorage
     {
       /// \brief Constructor.
       public: TopicStorage() = default;
@@ -242,9 +242,9 @@ namespace ignition
 
       /// \brief Given a process UUID, the function returns the list of
       /// publishers contained in this process UUID with its address information
-      /// \param _pUuid Process UUID.
-      /// \param _pubs Map of publishers where the keys are the node UUIDs and
-      /// the value is its address information.
+      /// \param[in] _pUuid Process UUID.
+      /// \param[out] _pubs Map of publishers where the keys are the node UUIDs
+      /// and the value is its address information.
       public: void PublishersByProc(const std::string &_pUuid,
                              std::map<std::string, std::vector<T>> &_pubs) const
       {

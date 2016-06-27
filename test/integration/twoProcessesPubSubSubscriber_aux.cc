@@ -17,25 +17,25 @@
 
 #include <chrono>
 #include <string>
+#include <ignition/msgs.hh>
 #ifdef _WIN32
   #include <filesystem>
 #endif
 
 #include "ignition/transport/Node.hh"
-#include "msgs/vector3d.pb.h"
 #include "gtest/gtest.h"
 #include "ignition/transport/test_config.h"
 
 using namespace ignition;
 
-bool cbExecuted;
-bool cb2Executed;
-std::string topic = "/foo";
-std::string data = "bar";
+static bool cbExecuted;
+static bool cb2Executed;
+static std::string g_topic = "/foo";
+static std::string data = "bar";
 
 //////////////////////////////////////////////////
 /// \brief Function is called everytime a topic update is received.
-void cb(const transport::msgs::Vector3d &_msg)
+void cb(const ignition::msgs::Vector3d &_msg)
 {
   EXPECT_DOUBLE_EQ(_msg.x(), 1.0);
   EXPECT_DOUBLE_EQ(_msg.y(), 2.0);
@@ -45,7 +45,7 @@ void cb(const transport::msgs::Vector3d &_msg)
 
 //////////////////////////////////////////////////
 /// \brief Function is called everytime a topic update is received.
-void cb2(const transport::msgs::Vector3d &_msg)
+void cb2(const ignition::msgs::Vector3d &_msg)
 {
   EXPECT_DOUBLE_EQ(_msg.x(), 1.0);
   EXPECT_DOUBLE_EQ(_msg.y(), 2.0);
@@ -62,8 +62,8 @@ void runSubscriber()
   transport::Node node;
   transport::Node node2;
 
-  EXPECT_TRUE(node.Subscribe(topic, cb));
-  EXPECT_TRUE(node2.Subscribe(topic, cb2));
+  EXPECT_TRUE(node.Subscribe(g_topic, cb));
+  EXPECT_TRUE(node2.Subscribe(g_topic, cb2));
 
   int interval = 100;
 
@@ -81,7 +81,7 @@ void runSubscriber()
   EXPECT_TRUE(cb2Executed);
 
   cb2Executed = false;
-  EXPECT_TRUE(node.Unsubscribe(topic));
+  EXPECT_TRUE(node.Unsubscribe(g_topic));
   std::this_thread::sleep_for(std::chrono::milliseconds(300));
   cbExecuted = false;
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));

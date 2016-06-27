@@ -58,16 +58,16 @@ NodeShared *NodeShared::Instance()
 
 //////////////////////////////////////////////////
 NodeShared::NodeShared()
-  : verbose(false),
+  : timeout(Timeout),
+    exit(false),
+    verbose(false),
     context(new zmq::context_t(1)),
     publisher(new zmq::socket_t(*context, ZMQ_PUB)),
     subscriber(new zmq::socket_t(*context, ZMQ_SUB)),
     control(new zmq::socket_t(*context, ZMQ_DEALER)),
     requester(new zmq::socket_t(*context, ZMQ_ROUTER)),
     responseReceiver(new zmq::socket_t(*context, ZMQ_ROUTER)),
-    replier(new zmq::socket_t(*context, ZMQ_ROUTER)),
-    timeout(Timeout),
-    exit(false)
+    replier(new zmq::socket_t(*context, ZMQ_ROUTER))
 {
   // If IGN_VERBOSE=1 enable the verbose mode.
   std::string ignVerbose;
@@ -79,14 +79,15 @@ NodeShared::NodeShared()
   Uuid uuid;
   this->pUuid = uuid.ToString();
 
-  // Initialize my discovery service.
-  this->discovery.reset(new Discovery(this->pUuid, false));
+  // Initialize my discovery services.
+  this->msgDiscovery.reset(new MsgDiscovery(this->pUuid, this->kMsgDiscPort));
+  this->srvDiscovery.reset(new SrvDiscovery(this->pUuid, this->kSrvDiscPort));
 
   // Initialize the 0MQ objects.
   try
   {
     // Set the hostname's ip address.
-    this->hostAddr = this->discovery->HostAddr();
+    this->hostAddr = this->msgDiscovery->HostAddr();
 
     // Publisher socket listening in a random port.
     std::string anyTcpEp = "tcp://" + this->hostAddr + ":*";
@@ -152,19 +153,24 @@ NodeShared::NodeShared()
 #endif
 
   // Set the callback to notify discovery updates (new topics).
-  discovery->ConnectionsCb(&NodeShared::OnNewConnection, this);
+  msgDiscovery->ConnectionsCb(std::bind(&NodeShared::OnNewConnection,
+    this, std::placeholders::_1));
 
   // Set the callback to notify discovery updates (invalid topics).
-  discovery->DisconnectionsCb(&NodeShared::OnNewDisconnection, this);
+  msgDiscovery->DisconnectionsCb(std::bind(&NodeShared::OnNewDisconnection,
+    this, std::placeholders::_1));
 
   // Set the callback to notify svc discovery updates (new services).
-  discovery->ConnectionsSrvCb(&NodeShared::OnNewSrvConnection, this);
+  srvDiscovery->ConnectionsCb(std::bind(&NodeShared::OnNewSrvConnection,
+    this, std::placeholders::_1));
 
   // Set the callback to notify svc discovery updates (invalid services).
-  discovery->DisconnectionsSrvCb(&NodeShared::OnNewSrvDisconnection, this);
+  srvDiscovery->DisconnectionsCb(std::bind(&NodeShared::OnNewSrvDisconnection,
+    this, std::placeholders::_1));
 
-  // Start the discovery service.
-  discovery->Start();
+  // Start the discovery services.
+  msgDiscovery->Start();
+  srvDiscovery->Start();
 }
 
 //////////////////////////////////////////////////
@@ -183,15 +189,6 @@ NodeShared::~NodeShared()
   // Wait for the service thread before exit.
   if (this->threadReception.joinable())
     this->threadReception.join();
-
-  // We explicitly destroy the ZMQ socket before destroying the ZMQ context.
-  publisher.reset();
-  subscriber.reset();
-  control.reset();
-  requester.reset();
-  responseReceiver.reset();
-  replier.reset();
-  delete this->context;
 #else
   bool exitLoop = false;
   while (!exitLoop)
@@ -209,9 +206,6 @@ NodeShared::~NodeShared()
   // destructor to hang (probably waiting for ZMQ sockets to terminate).
   // ToDo: Fix it.
 #endif
-
-  // Explicitly reset discovery to prevent callbacks
-  this->discovery.reset();
 }
 
 //////////////////////////////////////////////////
@@ -660,7 +654,7 @@ void NodeShared::SendPendingRemoteReqs(const std::string &_topic,
   std::string responserAddr;
   std::string responserId;
   SrvAddresses_M addresses;
-  this->discovery->SrvPublishers(_topic, addresses);
+  this->srvDiscovery->Publishers(_topic, addresses);
   if (addresses.empty())
     return;
 
