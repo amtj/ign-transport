@@ -32,6 +32,16 @@ if (EXISTS "${CMAKE_SOURCE_DIR}/requester_async.cc")
   target_link_libraries(requester_async ${IGNITION-TRANSPORT_LIBRARIES})
 endif()
 
+if (EXISTS "${CMAKE_SOURCE_DIR}/SrvProviderOneway.cc")
+  add_executable(SrvProviderOneway SrvProviderOneway.cc ${PROTO_SRC})
+  target_link_libraries(SrvProviderOneway ${IGNITION-TRANSPORT_LIBRARIES})
+endif()
+
+if (EXISTS "${CMAKE_SOURCE_DIR}/RequesterOneway.cc")
+  add_executable(RequesterOneway RequesterOneway.cc ${PROTO_SRC})
+  target_link_libraries(RequesterOneway ${IGNITION-TRANSPORT_LIBRARIES})
+endif()
+
 if (EXISTS "${CMAKE_SOURCE_DIR}/responser_no_input.cc")
   add_executable(responser_no_input responser_no_input.cc)
   target_link_libraries(responser_no_input ${IGNITION-TRANSPORT_LIBRARIES})

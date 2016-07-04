@@ -31,6 +31,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <ignition/msgs.hh>
 
 #include "ignition/transport/Discovery.hh"
 #include "ignition/transport/Helpers.hh"
@@ -503,6 +504,13 @@ void NodeShared::RecvSrvRequest()
     // Run the service call and get the results.
     repHandler->RunCallback(req, rep, result);
 
+    // If 'reptype' is msgs::Empty", this is a oneway request
+    // and we don't send response
+    if (repType == ignition::msgs::Empty().GetTypeName())
+    {
+      return;
+    }
+
     if (result)
       resultStr = "1";
     else
@@ -779,6 +787,13 @@ void NodeShared::SendPendingRemoteReqs(const std::string &_topic,
       {
         // Debug output.
         // std::cerr << "Error connecting [" << ze.what() << "]\n";
+      }
+
+      // Remove the handler associated to this service request. We won't
+      // receive a response because this is a oneway request.
+      if (_repType == ignition::msgs::Empty().GetTypeName())
+      {
+        this->requests.RemoveHandler(_topic, nodeUuid, reqUuid);
       }
     }
   }
