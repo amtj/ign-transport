@@ -41,11 +41,11 @@ namespace ignition
   {
     /// \class IReqHandler ReqHandler.hh ignition/transport/ReqHandler.hh
     /// \brief Interface class used to manage a request handler.
-    class IGNITION_VISIBLE IReqHandler
+    class IGNITION_TRANSPORT_VISIBLE IReqHandler
     {
       /// \brief Constructor.
-      /// \param[in] _uuid UUID of the node registering the request handler.
-      public: IReqHandler(const std::string &_nUuid)
+      /// \param[in] _nUuid UUID of the node registering the request handler.
+      public: explicit IReqHandler(const std::string &_nUuid)
         : rep(""),
           result(false),
           hUuid(Uuid().ToString()),
@@ -176,7 +176,7 @@ namespace ignition
       : public IReqHandler
     {
       // Documentation inherited.
-      public: ReqHandler(const std::string &_nUuid)
+      public: explicit ReqHandler(const std::string &_nUuid)
         : IReqHandler(_nUuid)
       {
       }

@@ -17,21 +17,20 @@
 
 #include <chrono>
 #include <string>
+#include <ignition/msgs.hh>
 
 #include "ignition/transport/Node.hh"
 #include "gtest/gtest.h"
-#include "msgs/int.pb.h"
-#include "msgs/vector3d.pb.h"
 #include "ignition/transport/test_config.h"
 
 using namespace ignition;
 
-std::string partition;
-std::string topic = "/foo";
-std::string data = "bar";
-bool cbExecuted = false;
-bool cbVectorExecuted = false;
-int counter = 0;
+static std::string partition;
+static std::string g_topic = "/foo";
+static std::string data = "bar";
+static bool cbExecuted = false;
+static bool cbVectorExecuted = false;
+static int counter = 0;
 
 //////////////////////////////////////////////////
 /// \brief Initialize some global variables.
@@ -43,7 +42,7 @@ void reset()
 
 //////////////////////////////////////////////////
 /// \brief Function called each time a topic update is received.
-void cb(const transport::msgs::Int &/*_msg*/)
+void cb(const ignition::msgs::Int32 &/*_msg*/)
 {
   cbExecuted = true;
   counter++;
@@ -52,14 +51,14 @@ void cb(const transport::msgs::Int &/*_msg*/)
 
 //////////////////////////////////////////////////
 /// \brief Callback for receiving Vector3d data.
-void cbVector(const transport::msgs::Vector3d &/*_msg*/)
+void cbVector(const ignition::msgs::Vector3d &/*_msg*/)
 {
   cbVectorExecuted = true;
 }
 
 //////////////////////////////////////////////////
 /// \brief Three different nodes running in two different processes. In the
-/// subscriber processs there are two nodes. Both should receive the message.
+/// subscriber process there are two nodes. Both should receive the message.
 /// After some time one of them unsubscribe. After that check that only one
 /// node receives the message.
 TEST(twoProcPubSub, PubSubTwoProcsTwoNodes)
@@ -71,18 +70,18 @@ TEST(twoProcPubSub, PubSubTwoProcsTwoNodes)
   testing::forkHandlerType pi = testing::forkAndRun(subscriberPath.c_str(),
     partition.c_str());
 
-  transport::msgs::Vector3d msg;
+  ignition::msgs::Vector3d msg;
   msg.set_x(1.0);
   msg.set_y(2.0);
   msg.set_z(3.0);
 
   transport::Node node;
-  EXPECT_TRUE(node.Advertise<transport::msgs::Vector3d>(topic));
+  EXPECT_TRUE(node.Advertise<ignition::msgs::Vector3d>(g_topic));
 
   // Publish messages for a few seconds
   for (auto i = 0; i < 20; ++i)
   {
-    EXPECT_TRUE(node.Publish(topic, msg));
+    EXPECT_TRUE(node.Publish(g_topic, msg));
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
 
@@ -104,7 +103,7 @@ TEST(twoProcPubSub, PubSubWrongTypesOnSubscription)
   reset();
 
   transport::Node node;
-  EXPECT_TRUE(node.Subscribe(topic, cb));
+  EXPECT_TRUE(node.Subscribe(g_topic, cb));
 
   // Wait some time before publishing.
   std::this_thread::sleep_for(std::chrono::milliseconds(1500));
@@ -136,8 +135,8 @@ TEST(twoProcPubSub, PubSubWrongTypesTwoSubscribers)
 
   transport::Node node1;
   transport::Node node2;
-  EXPECT_TRUE(node1.Subscribe(topic, cb));
-  EXPECT_TRUE(node2.Subscribe(topic, cbVector));
+  EXPECT_TRUE(node1.Subscribe(g_topic, cb));
+  EXPECT_TRUE(node2.Subscribe(g_topic, cbVector));
 
   // Wait some time before publishing.
   std::this_thread::sleep_for(std::chrono::milliseconds(2500));
@@ -169,7 +168,7 @@ TEST(twoProcPubSub, FastPublisher)
 
   transport::Node node;
 
-  EXPECT_TRUE(node.Subscribe(topic, cbVector));
+  EXPECT_TRUE(node.Subscribe(g_topic, cbVector));
   testing::waitAndCleanupFork(pi);
 }
 
@@ -198,7 +197,7 @@ TEST(twoProcPubSub, TopicList)
   node.TopicList(topics);
   auto end1 = std::chrono::steady_clock::now();
   ASSERT_EQ(topics.size(), 1u);
-  EXPECT_EQ(topics.at(0), topic);
+  EXPECT_EQ(topics.at(0), g_topic);
   topics.clear();
 
   // Time elapsed to get the first topic list
@@ -209,7 +208,7 @@ TEST(twoProcPubSub, TopicList)
   node.TopicList(topics);
   auto end2 = std::chrono::steady_clock::now();
   EXPECT_EQ(topics.size(), 1u);
-  EXPECT_EQ(topics.at(0), topic);
+  EXPECT_EQ(topics.at(0), g_topic);
 
   // The first TopicList() call might block if the discovery is still
   // initializing (it may happen if we run this test alone).
@@ -254,8 +253,7 @@ TEST(twoProcPubSub, TopicInfo)
 
   EXPECT_TRUE(node.TopicInfo("/foo", publishers));
   EXPECT_EQ(publishers.size(), 1u);
-  EXPECT_EQ(publishers.front().MsgTypeName(),
-            "ignition.transport.msgs.Vector3d");
+  EXPECT_EQ(publishers.front().MsgTypeName(), "ignition.msgs.Vector3d");
 
   reset();
 

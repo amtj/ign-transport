@@ -18,16 +18,16 @@
 #include <chrono>
 #include <cstdlib>
 #include <string>
+#include <ignition/msgs.hh>
 
 #include "ignition/transport/Node.hh"
 #include "gtest/gtest.h"
 #include "ignition/transport/test_config.h"
-#include "msgs/int.pb.h"
 
 using namespace ignition;
 
-std::string partition;
-std::string topic = "/foo";
+static std::string partition;
+static std::string g_topic = "/foo";
 
 //////////////////////////////////////////////////
 TEST(twoProcSrvCall, ThousandCalls)
@@ -39,8 +39,8 @@ TEST(twoProcSrvCall, ThousandCalls)
   testing::forkHandlerType pi = testing::forkAndRun(responser_path.c_str(),
     partition.c_str());
 
-  transport::msgs::Int req;
-  transport::msgs::Int response;
+  ignition::msgs::Int32 req;
+  ignition::msgs::Int32 response;
   bool result;
   unsigned int timeout = 1000;
   transport::Node node;
@@ -50,7 +50,7 @@ TEST(twoProcSrvCall, ThousandCalls)
   for (int i = 0; i < 15000; i++)
   {
     req.set_data(i);
-    ASSERT_TRUE(node.Request(topic, req, timeout, response, result));
+    ASSERT_TRUE(node.Request(g_topic, req, timeout, response, result));
 
     // Check the service response.
     ASSERT_TRUE(result);
