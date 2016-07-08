@@ -88,7 +88,7 @@ void Header::SetFlags(const uint16_t _flags)
 int Header::HeaderLength() const
 {
   return static_cast<int>(sizeof(this->version) +
-         sizeof(uint64_t) + this->pUuid.size() +
+         sizeof(uint16_t) + this->pUuid.size() +
          sizeof(this->type) + sizeof(this->flags));
 }
 
@@ -116,7 +116,7 @@ size_t Header::Pack(char *_buffer) const
   _buffer += sizeof(this->version);
 
   // Pack the process UUID length.
-  uint64_t pUuidLength = this->pUuid.size();
+  uint16_t pUuidLength = static_cast<uint16_t>(this->pUuid.size());
   memcpy(_buffer, &pUuidLength, sizeof(pUuidLength));
   _buffer += sizeof(pUuidLength);
 
@@ -149,7 +149,7 @@ size_t Header::Unpack(const char *_buffer)
   _buffer += sizeof(this->version);
 
   // Unpack the process UUID length.
-  uint64_t pUuidLength;
+  uint16_t pUuidLength;
   memcpy(&pUuidLength, _buffer, sizeof(pUuidLength));
   _buffer += sizeof(pUuidLength);
 
@@ -203,7 +203,7 @@ void SubscriptionMsg::SetTopic(const std::string &_topic)
 //////////////////////////////////////////////////
 size_t SubscriptionMsg::MsgLength() const
 {
-  return this->header.HeaderLength() + sizeof(uint64_t) + this->topic.size();
+  return this->header.HeaderLength() + sizeof(uint16_t) + this->topic.size();
 }
 
 //////////////////////////////////////////////////
@@ -224,7 +224,7 @@ size_t SubscriptionMsg::Pack(char *_buffer) const
   _buffer += headerLen;
 
   // Pack the topic length.
-  uint64_t topicLength = this->topic.size();
+  uint16_t topicLength = static_cast<uint16_t>(this->topic.size());
   memcpy(_buffer, &topicLength, sizeof(topicLength));
   _buffer += sizeof(topicLength);
 
@@ -246,7 +246,7 @@ size_t SubscriptionMsg::Unpack(char *_buffer)
   }
 
   // Unpack the topic length.
-  uint64_t topicLength;
+  uint16_t topicLength;
   memcpy(&topicLength, _buffer, sizeof(topicLength));
   _buffer += sizeof(topicLength);
 

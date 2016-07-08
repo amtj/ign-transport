@@ -18,23 +18,23 @@
 #include <chrono>
 #include <cstdlib>
 #include <string>
+#include <ignition/msgs.hh>
 
 #include "ignition/transport/Node.hh"
 #include "gtest/gtest.h"
 #include "ignition/transport/test_config.h"
-#include "msgs/int.pb.h"
 
 using namespace ignition;
 
-std::string partition;
-std::string topic = "/foo";
-int data = 5;
+static std::string partition;
+static std::string g_topic = "/foo";
+static int data = 5;
 
 //////////////////////////////////////////////////
-/// \brief Three different nodes running in two different processes. In the
-/// subscriber processs there are two nodes. Both should receive the message.
-/// After some time one of them unsubscribe. After that check that only one
-/// node receives the message.
+/// \brief This test spawns a service responser and a service requester. The
+/// synchronous requester uses a wrong service's name. The test should verify
+/// that the service call does not succeed and the elapsed time was close to
+/// the timeout.
 TEST(twoProcSrvCallSync1, SrvTwoProcs)
 {
   std::string responser_path = testing::portablePathUnion(
@@ -45,8 +45,8 @@ TEST(twoProcSrvCallSync1, SrvTwoProcs)
     partition.c_str());
 
   int64_t timeout = 500;
-  transport::msgs::Int req;
-  transport::msgs::Int rep;
+  ignition::msgs::Int32 req;
+  ignition::msgs::Int32 rep;
   bool result;
 
   req.set_data(data);
@@ -55,8 +55,8 @@ TEST(twoProcSrvCallSync1, SrvTwoProcs)
 
   // Make sure that the address of the service call provider is known.
   std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-  ASSERT_TRUE(node.Request(topic, req, static_cast<unsigned int>(timeout), rep,
-      result));
+  ASSERT_TRUE(node.Request(g_topic, req, static_cast<unsigned int>(timeout),
+    rep, result));
   EXPECT_EQ(req.data(), rep.data());
   EXPECT_TRUE(result);
 
