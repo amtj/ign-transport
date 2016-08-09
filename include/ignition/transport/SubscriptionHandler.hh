@@ -32,6 +32,7 @@
 #include <string>
 
 #include "ignition/transport/Helpers.hh"
+#include "ignition/transport/SubscribeOptions.hh"
 #include "ignition/transport/TransportTypes.hh"
 #include "ignition/transport/Uuid.hh"
 
@@ -46,8 +47,10 @@ namespace ignition
     {
       /// \brief Constructor.
       /// \param[in] _nUuid UUID of the node registering the handler.
-      public: explicit ISubscriptionHandler(const std::string &_nUuid)
+      public: explicit ISubscriptionHandler(const std::string &_nUuid,
+                                            SubscribeOptions *_opts)
         : hUuid(Uuid().ToString()),
+          opts(_opts),
           nUuid(_nUuid)
       {
       }
@@ -91,6 +94,9 @@ namespace ignition
       /// \brief Unique handler's UUID.
       protected: std::string hUuid;
 
+      /// \brief Subscribe options.
+      protected: SubscribeOptions *opts;
+
       /// \brief Node UUID.
       private: std::string nUuid;
     };
@@ -103,8 +109,9 @@ namespace ignition
       : public ISubscriptionHandler
     {
       // Documentation inherited.
-      public: explicit SubscriptionHandler(const std::string &_nUuid)
-        : ISubscriptionHandler(_nUuid)
+      public: explicit SubscriptionHandler(const std::string &_nUuid,
+                                           SubscribeOptions *_opts)
+        : ISubscriptionHandler(_nUuid, _opts)
       {
       }
 
@@ -142,6 +149,12 @@ namespace ignition
       // Documentation inherited.
       public: bool RunLocalCallback(const transport::ProtoMsg &_msg) const
       {
+        // Check for subscribe options.
+        if (this->opts)
+        {
+          this->opts->SetMsgsPerSec()
+        }
+
         // Execute the callback (if existing)
         if (this->cb)
         {

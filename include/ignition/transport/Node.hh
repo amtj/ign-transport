@@ -50,6 +50,7 @@
 #include "ignition/transport/Publisher.hh"
 #include "ignition/transport/RepHandler.hh"
 #include "ignition/transport/ReqHandler.hh"
+#include "ignition/transport/SubscribeOptions.hh"
 #include "ignition/transport/SubscriptionHandler.hh"
 #include "ignition/transport/TopicUtils.hh"
 #include "ignition/transport/TransportTypes.hh"
@@ -230,7 +231,8 @@ namespace ignition
       /// \return true when successfully subscribed or false otherwise.
       public: template<typename T> bool Subscribe(
           const std::string &_topic,
-          std::function<void(const T &_msg)> &_cb)
+          std::function<void(const T &_msg)> &_cb,
+          SubscribeOptions *_opts = = nullptr)
       {
         std::string fullyQualifiedTopic;
         if (!TopicUtils::FullyQualifiedName(this->Options().Partition(),
@@ -242,7 +244,7 @@ namespace ignition
 
         // Create a new subscription handler.
         std::shared_ptr<SubscriptionHandler<T>> subscrHandlerPtr(
-            new SubscriptionHandler<T>(this->NodeUuid()));
+            new SubscriptionHandler<T>(this->dataPtr->nUuid, _opts));
 
         // Insert the callback into the handler.
         subscrHandlerPtr->SetCallback(_cb);
@@ -282,7 +284,8 @@ namespace ignition
       public: template<typename C, typename T> bool Subscribe(
           const std::string &_topic,
           void(C::*_cb)(const T &_msg),
-          C *_obj)
+          C *_obj,
+          SubscribeOptions *_opts = nullptr)
       {
         std::function<void(const T &)> f = [_cb, _obj](const T & _internalMsg)
         {
