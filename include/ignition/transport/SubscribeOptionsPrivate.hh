@@ -15,8 +15,8 @@
  *
 */
 
-#ifndef __IGN_TRANSPORT_SUBSCRIBEOPTIONS_PRIVATE_HH_
-#define __IGN_TRANSPORT_SUBSCRIBEOPTIONS_PRIVATE_HH_
+#ifndef IGN_TRANSPORT_SUBSCRIBEOPTIONSPRIVATE_HH_
+#define IGN_TRANSPORT_SUBSCRIBEOPTIONSPRIVATE_HH_
 
 #include "ignition/transport/SubscribeOptions.hh"
 #include "ignition/transport/Helpers.hh"
@@ -28,13 +28,16 @@ namespace ignition
     /// \class SubscribeOptionsPrivate SubscribeOptionsPrivate.hh
     /// ignition/transport/SubscribeOptionsPrivate.hh
     /// \brief Private data for the SubscribeOptions class.
-    class IGNITION_VISIBLE SubscribeOptionsPrivate
+    class SubscribeOptionsPrivate
     {
       /// \brief Constructor.
       public: SubscribeOptionsPrivate() = default;
 
       /// \brief Destructor.
       public: virtual ~SubscribeOptionsPrivate() = default;
+
+      /// \brief Default MsgsPerSec of the topic/service.
+      public: int MsgsPerSec = -1;
     };
   }
 }

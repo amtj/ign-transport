@@ -15,8 +15,8 @@
  *
 */
 
-#ifndef __IGN_TRANSPORT_SUBSCRIBEOPTIONS_HH_
-#define __IGN_TRANSPORT_SUBSCRIBEOPTIONS_HH_
+#ifndef IGN_TRANSPORT_SUBSCRIBEOPTIONS_HH_
+#define IGN_TRANSPORT_SUBSCRIBEOPTIONS_HH_
 
 #include <memory>
 
@@ -31,7 +31,7 @@ namespace ignition
     /// \class SubscribeOptions SubscribeOptions.hh
     /// ignition/transport/SubscribeOptions.hh
     /// \brief A class to provide different options for a subscription.
-    class IGNITION__TRANSPORT_VISIBLE SubscribeOptions
+    class IGNITION_TRANSPORT_VISIBLE SubscribeOptions
     {
       /// \brief Constructor.
       public: SubscribeOptions();
@@ -39,11 +39,14 @@ namespace ignition
       /// \brief Destructor.
       public: ~SubscribeOptions();
 
+      /// \brief Set the MsgsPerSec of the topic/service.
+      /// \param[in] _MsgsPerSec to be set.
+      public: void SetMsgsPerSec(int _NewMsgsPerSec);
+
       /// \internal
       /// \brief Shared pointer to private data.
       protected: std::unique_ptr<SubscribeOptionsPrivate> dataPtr;
     };
   }
 }
-
 #endif
