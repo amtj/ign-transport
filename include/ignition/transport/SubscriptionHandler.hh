@@ -48,7 +48,7 @@ namespace ignition
       /// \brief Constructor.
       /// \param[in] _nUuid UUID of the node registering the handler.
       public: explicit ISubscriptionHandler(const std::string &_nUuid,
-                                            SubscribeOptions *_opts)
+                                            const SubscribeOptions &_opts)
         : hUuid(Uuid().ToString()),
           opts(_opts),
           nUuid(_nUuid)
@@ -95,7 +95,7 @@ namespace ignition
       protected: std::string hUuid;
 
       /// \brief Subscribe options.
-      protected: SubscribeOptions *opts;
+      protected: SubscribeOptions opts;
 
       /// \brief Node UUID.
       private: std::string nUuid;

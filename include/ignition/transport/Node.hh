@@ -232,7 +232,7 @@ namespace ignition
       public: template<typename T> bool Subscribe(
           const std::string &_topic,
           std::function<void(const T &_msg)> &_cb,
-          SubscribeOptions *_opts = = nullptr)
+          const SubscribeOptions &_opts = SubscribeOptions())
       {
         std::string fullyQualifiedTopic;
         if (!TopicUtils::FullyQualifiedName(this->Options().Partition(),

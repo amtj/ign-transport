@@ -18,9 +18,6 @@
 #ifndef IGN_TRANSPORT_SUBSCRIBEOPTIONSPRIVATE_HH_
 #define IGN_TRANSPORT_SUBSCRIBEOPTIONSPRIVATE_HH_
 
-#include "ignition/transport/SubscribeOptions.hh"
-#include "ignition/transport/Helpers.hh"
-
 namespace ignition
 {
   namespace transport
@@ -36,8 +33,8 @@ namespace ignition
       /// \brief Destructor.
       public: virtual ~SubscribeOptionsPrivate() = default;
 
-      /// \brief Default MsgsPerSec of the topic/service.
-      public: int MsgsPerSec = -1;
+      /// \brief Default msgsPerSec of the topic/service.
+      public: int msgsPerSec = -1;
     };
   }
 }

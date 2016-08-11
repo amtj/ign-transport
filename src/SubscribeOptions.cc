@@ -33,13 +33,13 @@ SubscribeOptions::~SubscribeOptions()
 }
 
 //////////////////////////////////////////////////
-int SubscribeOptions::SetMsgsPerSec()
+const int SubscribeOptions::MsgsPerSec()
 {
-  return this->dataPtr->MsgsPerSec;
+  return this->dataPtr->msgsPerSec;
 }
 
 //////////////////////////////////////////////////
-void SubscribeOptions::SetMsgsPerSec(int _NewMsgsPerSec)
+void SubscribeOptions::SetMsgsPerSec(int _newMsgsPerSec)
 {
-  this->dataPtr->MsgsPerSec = _NewMsgsPerSec;
+  this->dataPtr->msgsPerSec = _newMsgsPerSec;
 }
