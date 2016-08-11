@@ -39,9 +39,13 @@ namespace ignition
       /// \brief Destructor.
       public: ~SubscribeOptions();
 
-      /// \brief Set the MsgsPerSec of the topic/service.
-      /// \param[in] _MsgsPerSec to be set.
-      public: void SetMsgsPerSec(int _NewMsgsPerSec);
+      /// \brief Set the msgsPerSec of the topic/service.
+      /// \param[in] _msgsPerSec to be set.
+      public: void SetMsgsPerSec(int _newMsgsPerSec);
+
+      /// \brief Get the msgsPerSec used in this topic/service.
+      /// \return The msgsPerSec.
+      public: int MsgsPerSec() const;
 
       /// \internal
       /// \brief Shared pointer to private data.
