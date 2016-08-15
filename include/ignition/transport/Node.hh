@@ -213,14 +213,15 @@ namespace ignition
       /// \return true when successfully subscribed or false otherwise.
       public: template<typename T> bool Subscribe(
           const std::string &_topic,
-          void(*_cb)(const T &_msg))
+          void(*_cb)(const T &_msg),
+          const SubscribeOptions &_opts = SubscribeOptions())
       {
         std::function<void(const T &)> f = [_cb](const T & _internalMsg)
         {
           (*_cb)(_internalMsg);
         };
 
-        return this->Subscribe<T>(_topic, f);
+        return this->Subscribe<T>(_topic, f, _opts);
       }
 
       /// \brief Subscribe to a topic registering a callback.
@@ -285,7 +286,7 @@ namespace ignition
           const std::string &_topic,
           void(C::*_cb)(const T &_msg),
           C *_obj,
-          SubscribeOptions *_opts = nullptr)
+          const SubscribeOptions &_opts = SubscribeOptions())
       {
         std::function<void(const T &)> f = [_cb, _obj](const T & _internalMsg)
         {
@@ -293,7 +294,7 @@ namespace ignition
           cb(_internalMsg);
         };
 
-        return this->Subscribe<T>(_topic, f);
+        return this->Subscribe<T>(_topic, f, _opts);
       }
 
       /// \brief Get the list of topics subscribed by this node. Note that

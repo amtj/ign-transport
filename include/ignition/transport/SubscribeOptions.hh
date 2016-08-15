@@ -36,6 +36,10 @@ namespace ignition
       /// \brief Constructor.
       public: SubscribeOptions();
 
+      /// \brief Copy constructor.
+      /// \param[in] _newMsgsPerSec SubscribeOptions to copy.
+      public: SubscribeOptions(const SubscribeOptions _newMsgsPerSec);
+
       /// \brief Destructor.
       public: ~SubscribeOptions();
 

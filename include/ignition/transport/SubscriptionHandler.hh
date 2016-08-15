@@ -26,6 +26,7 @@
 #pragma warning(pop)
 #endif
 
+#include <chrono>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -152,15 +153,27 @@ namespace ignition
         // Check for subscribe options.
         if (this->opts)
         {
-          this->opts->SetMsgsPerSec()
+          this->opts->SetMsgsPerSec();
+
+          if (std::chrono::steady_clock::now() == cbTimestamp &&
+              msgsPerSec <= executedMsgsPerSec++)
+          {
+            std::cerr << "SubscriptionHandler::RunLocalCallback() error: "
+                      << "Callback limit exceeded" << std::endl;
+            return false;
+          }
         }
 
         // Execute the callback (if existing)
-        if (this->cb)
+        if (this->cb && execute_cb)
         {
           auto msgPtr = google::protobuf::down_cast<const T*>(&_msg);
 
           this->cb(*msgPtr);
+
+          cbTimestamp = std::chrono::steady_clock::now();
+          executedMsgsPerSec++;
+
           return true;
         }
         else
