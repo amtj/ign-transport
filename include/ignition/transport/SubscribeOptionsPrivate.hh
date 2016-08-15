@@ -33,8 +33,10 @@ namespace ignition
       /// \brief Destructor.
       public: virtual ~SubscribeOptionsPrivate() = default;
 
-      /// \brief Default msgsPerSec of the topic/service.
+      /// \brief Default variables of the topic/service.
       public: int msgsPerSec = -1;
+      public: int executedMsgsPerSec = 0;
+      public: auto cbTimestamp = 0;
     };
   }
 }
