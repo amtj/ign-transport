@@ -165,7 +165,7 @@ namespace ignition
         }
 
         // Execute the callback (if existing)
-        if (this->cb && execute_cb)
+        if (this->cb)
         {
           auto msgPtr = google::protobuf::down_cast<const T*>(&_msg);
 
