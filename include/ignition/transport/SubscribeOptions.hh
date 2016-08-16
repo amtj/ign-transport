@@ -38,7 +38,7 @@ namespace ignition
 
       /// \brief Copy constructor.
       /// \param[in] _newMsgsPerSec SubscribeOptions to copy.
-      public: SubscribeOptions(const SubscribeOptions _newMsgsPerSec);
+      public: SubscribeOptions(const SubscribeOptions &_newMsgsPerSec);
 
       /// \brief Destructor.
       public: ~SubscribeOptions();
@@ -49,7 +49,7 @@ namespace ignition
 
       /// \brief Get the msgsPerSec used in this topic/service.
       /// \return The msgsPerSec.
-      public: int MsgsPerSec() const;
+      public: const int MsgsPerSec() const;
 
       /// \internal
       /// \brief Shared pointer to private data.
