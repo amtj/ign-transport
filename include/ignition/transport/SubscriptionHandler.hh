@@ -100,6 +100,9 @@ namespace ignition
 
       /// \brief Node UUID.
       private: std::string nUuid;
+
+      /// \brief Timestamp of the executed callback.
+      private: std::chrono::time_point<std::chrono::steady_clock> cbTimestamp;
     };
 
     /// \class SubscriptionHandler SubscriptionHandler.hh
@@ -150,10 +153,13 @@ namespace ignition
       // Documentation inherited.
       public: bool RunLocalCallback(const transport::ProtoMsg &_msg) const
       {
+        int executedMsgsPerSec;
+
         // Check for subscribe options.
         if (this->opts)
         {
-          this->opts->SetMsgsPerSec();
+          int msgsPerSec = this->opts->SetMsgsPerSec();
+
 
           if (std::chrono::steady_clock::now() == cbTimestamp &&
               msgsPerSec <= executedMsgsPerSec++)
